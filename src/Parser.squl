@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=30850
-mParser217:E7ADFAA34F9EDFBB3A862A62DB7306B5
+Application/vnd.squl1 ModuleExport size=30829
+mParser217:C71B118ACA007EDDD27BDD30FD7D66A0
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -728,7 +728,7 @@ if:( softStatement:( variable:["V] ) module:(+:M -:_) variableMapping:(+:V -:_ )
 
 softStatement:empty statement:H index:_ module:(+:M -:M) variableMapping:(+:V -:V) hardened:H.
 
-then:( softStatement:( h:( label:L value:V ) emnut:Emnut ) statement:NewStatement index:Idx module:( +:M1 -:M3 ) variableMapping:(+:V1 -:V3) hardened:Result )
+then:( softStatement:( h:V emnut:Emnut ) statement:NewStatement index:Idx module:( +:M1 -:M3 ) variableMapping:(+:V1 -:V3) hardened:Result )
 if:( softStatement:V module:(+:M1 -:M2) variableMapping:(+:V1 -:V2) hardened:Vh )
 if:( statement:NewStatement index:Idx value:Vh result:S2 )
 if:( n:Idx plus:[+1] result:Idxn )
@@ -800,7 +800,7 @@ if:( iterator:Itr value:( metadata:( signature:Signature softSignature:_ ) ) nex
 clauses:empty toSoftSignature:empty.
 
 then:( clauses:(h:H emnut:Emnut) toSoftSignature:(h:B emnut:Okluz) )
-if:( :H asAtomOrVariable:B )
+if:( :H asAtomOrType:B )
 if:( clauses:Emnut toSoftSignature:Okluz ).
 
 test:( 
@@ -808,9 +808,9 @@ test:(
 	toSoftSignature:( h:(atom:["a]) emnut:(h:_ emnut:empty) ) 
 ).
 
-:(atom:A) asAtomOrVariable:(atom:A).
+:(atom:A) asAtomOrType:(atom:A).
 
-then:( :Z asAtomOrVariable:foo)
+then:( :Z asAtomOrType:(type:todo) )
 if:( notEqual:Z with:(atom:_) ).
 
 test:(  
