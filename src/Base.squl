@@ -1,0 +1,236 @@
+Application/vnd.squl1 ModuleExport size=6134
+mBase65:A4791430600148AF45B326E13D8512EE
+--
+module:[	mBase56] metadata:( name:["Base] ).
+
+module:[	mBase56] metadata:( description:["I contain core statements that you probably want to use.] ).
+
+then:( hemnu:empty t:T array:Ta )
+if:( array:Ta size:[+1] )
+if:( array:Ta index:[+1] value:T ).
+
+:[" The following two statements are not very declarative. I'd prefer to see statements rather than operations. ].
+
+then:( hemnu:Hemnu t:T array:Hemnut )
+if:( array:Hemnut size:Length )
+if:( n:Length plus:[-1] result:Lengt )
+if:( array:Hemnut fromIndex:[+1] toIndex:Lengt result:Hemnu )
+if:( array:Hemnut index:Length value:T ).
+
+then:( hemnu:Hemnu t:T array:Hemnut )
+if:( array:Hemnu size:HemnuS )
+if:( n:HemnuS plus:[+1] result:HemnutS )
+if:( create:array size:HemnutS result:HemnutA )
+if:( array:HemnutA index:[+1] insertArray:Hemnu result:HemnutB )
+if:( array:HemnutB index:HemnutS insert:T result:Hemnut ).
+
+then:( h:H emnut:["] array:He )
+if:( array:He size:[+1] )
+if:( array:He index:[+1] value:H ).
+
+then:( h:H emnut:["] array:He2 )
+if:( create:array size:[+1] result:He1 )
+if:( array:He1 index:[+1] insert:H result:He2 ).
+
+then:( h:H emnut:Emnut array:Hemnut )
+if:( array:Hemnut size:Length )
+if:( array:Hemnut fromIndex:[+2] toIndex:Length result:Emnut )
+if:( array:Hemnut index:[+1] value:H ).
+
+then:( h:H emnut:Emnut array:Hemnut ) 
+if:( array:Emnut size:EmnutSize )
+if:( n:EmnutSize plus:[+1] result:HemnutSize )
+if:( create:array size:HemnutSize result:HemnutA )
+if:( array:HemnutA index:[+1] insert:H result:HemnutB )
+if:( array:HemnutB index:[+2] insertArray:Emnut result:Hemnut ).
+
+cn:empty size:[+0].
+
+then:( cn:(h:H emnut:Emnut) size:S ) 
+if:( cn:Emnut size:Sm )
+if:( n:Sm plus:[+1] result:S ).
+
+h:H emnut:Emnut hemnut:(h:H emnut:Emnut).
+
+test:( h:['a] emnut:["b] array:H ).
+
+hem:empty nut:Nut hemnut:Nut.
+
+hem:["] nut:Nut array:Nut.
+
+hem:Hem nut:empty hemnut:Hem.
+
+hem:Hem nut:["] array:Hem.
+
+then:( hem:Hem nut:Nut hemnut:Hemnut )
+if:( h:H emnut:Emnut hemnut:Hemnut )
+if:( hem:Em nut:Nut hemnut:Emnut )
+if:( h:H emnut:Em hemnut:Hem ).
+
+then:( 
+	hint:( 
+		statement:( 
+			then:( hem:Hem nut:Nut hemnut:Hemnut )
+			if:( h:H emnut:Emnut hemnut:Hemnut )
+			if:( hem:Em nut:Nut hemnut:Emnut )
+			if:( h:H emnut:Em hemnut:Hem ) )
+		node:_
+		thread:_
+		relayIn:[+0]
+		relayOut:(hem-nut:[+2])
+		advice:( investigateNextClause:[+3] ) ) )
+if:( variable:Hemnut ).
+
+hint:( 
+	statement:( 
+		then:( hem:Hem nut:Nut hemnut:Hemnut )
+		if:( h:H emnut:Emnut hemnut:Hemnut )
+		if:( hem:Em nut:Nut hemnut:Emnut )
+		if:( h:H emnut:Em hemnut:Hem ) )
+	node:_
+	thread:_
+	relayIn:(hem-nut:[+2] )
+	relayOut:(hem-nut:[+1])
+	advice:( investigateNextClause:[+2] ) ) .
+
+hint:( 
+	statement:( 
+		then:( hem:Hem nut:Nut hemnut:Hemnut )
+		if:( h:H emnut:Emnut hemnut:Hemnut )
+		if:( hem:Em nut:Nut hemnut:Emnut )
+		if:( h:H emnut:Em hemnut:Hem ) )
+	node:_
+	thread:_
+	relayIn:(hem-nut:[+1] )
+	relayOut:done
+	advice:( investigateNextClause:[+1] ) ) .
+
+then:( hem:Hem nut:Nut array:Hemnut )
+if:( array:Hem size:HemS )
+if:( array:Nut size:NutS )
+if:( n:HemS plus:NutS result:HemnutS )
+if:( create:array size:HemnutS result:R1 )
+if:( array:R1 index:[+1] insertArray:Hem result:R2 )
+if:( n:HemS plus:[+1] result:HemS2 )
+if:( array:R2 index:HemS2 insertArray:Nut result:Hemnut ).
+
+then:( hem:Hem nut:Nut array:Hemnut )
+if:( array:Hem size:HemS )
+if:( array:Hemnut size:HemnutS )
+if:( n:HemS plus:NutS result:HemnutS )
+if:( array:Hemnut fromIndex:[+1] toIndex:HemS result:Hem )
+if:( n:NutS plus:[+1] result:NutS2 )
+if:( array:Hemnut fromIndex:NutS2 toIndex:HemnutS result:Nut ).
+
+then:( hem:Hem nut:Nut array:Hemnut )
+if:( array:Nut size:NutS )
+if:( array:Hemnut size:HemnutS )
+if:( n:HemS plus:NutS result:HemnutS )
+if:( n:HemS plus:[+1] result:HemS2 )
+if:( array:Hemnut fromIndex:HemS2 toIndex:HemnutS result:Nut )
+if:( array:Hemnut fromIndex:[+1] toIndex:HemS result:Hem ).
+
+then:( test:hemnut1 )
+if:( hem:["abc] nut:["def] array:A )
+if:( equal:A with:["abcdef] ).
+
+then:( test:hemnut2 )
+if:( hem:["abc] nut:Nut array:["abcdef] )
+if:( equal:Nut with:["def] ).
+
+then:( test:hemnut3 )
+if:( hem:Hem nut:["def] array:["abcdef] ) 
+if:( equal:Hem with:["abc] ).
+
+then:( cn:Array index:I value:E )
+if:( array:Array index:I value:E ).
+
+then:( cn:Array size:S )
+if:( array:Array size:S ).
+
+then:( cn:Array fromIndex:H toIndex:T result:R )
+if:( array:Array fromIndex:H toIndex:T result:R ).
+
+export:( h:H emnut:Emnut hemnut:Hemnut).
+
+export:( h:H emnut:Emnut array:Hemnut).
+
+export:( hemnu:Hemnu t:T hemnut:Hemnut ).
+
+export:( hemnu:Hemnu t:T array:Hemnut ).
+
+export:( hem:Hem nut:Nut hemnut:Hemnut ).
+
+export:( hem:Hem nut:Nut array:Hemnut ).
+
+export:( cn:Array index:I value:E ).
+
+export:( cn:Array size:S ).
+
+export:( cn:Collection fromIndex:B toIndex:E result:Result ).
+
+test:(hemnu:H t:T array:["foo]).
+
+test:(hemnu:["fo] t:['o] array:["foo]).
+
+:["].
+
+equal:X with:X.
+
+export:(equal:X with:Y).
+
+then:( notEqual:X with:Y )
+if:( noResults:( equal:X with:Y )).
+
+then:( lesser:L greaterOrEqual:E )
+if:( lesser:L greater:E ).
+
+lesser:L greaterOrEqual:L.
+
+export:( lesser:L greaterOrEqual:E ).
+
+then:( upperCase:N )
+if:( lesser:[+64] greater:N )
+if:( lesser:N greater:[+91] ).
+
+export:( upperCase:N ).
+
+test:(hemnu:["c] t:['a] array:Hemnut).
+
+:[" Characters are actually integers. Strings are uint8 integer arrays. ].
+
+then:( character:C )
+if:( integer:C ).
+
+:[" Dictionaries ].
+
+export:( create:dictionary result:D ).
+
+then:( create:dictionary result:(dictionary:D) )
+if:( create:module result:D ).
+
+export:( dictionary:D at:Key value:V ).
+
+then:( dictionary:(dictionary:D) at:Key value:V ) 
+if:( module:D simpleQueryUnifed:( key:Key value:[\V2] ) iterator:It )
+if:( iterator:It allResults:(key:Key value:V) ).
+
+export:( iterator:It allResults:R ).
+
+then:( iterator:It allResults:R )
+if:( iterator:It value:X next:NIt )
+if:( iterator:NIt allResults:R ).
+
+then:( iterator:It allResults:R )
+if:( iterator:It value:R next:NIt ).
+
+then:( dictionary:(+:( dictionary:D1) -:( dictionary:D2 )) at:Key put:V )
+if:( module:D1 add:( key:Key value:V ) result:D2 ).
+
+test:dict1.
+
+then:( test:dict1 )
+if:( create:dictionary result:D1 )
+if:( dictionary:(+:D1 -:D2) at:hello put:world )
+if:( dictionary:D at:hello value:world ).
+

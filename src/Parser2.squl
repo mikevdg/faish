@@ -1,0 +1,138 @@
+["
+This is the parser, but written properly in consise Squl.
+
+TODO: how will errors be handled?
+
+parser_main.squl
+parser_text.squl
+parser_literals.squl
+parser_typecheck.squl
+parser_harden.squl
+
+| - concatentation
+
+|+ - concatentation consuming optional whitespace.
+|++ - concatentation consuming mandatory whitespace
+; - or
+nl - newline
+].
+
+declare [ Label --> Rules ] :-
+	type Label string,
+	type Rules dcg_rules.
+
+[" Args is provided by the implemeter of the rules. 
+Logic is extra clauses that must be deducted.
+XXX how do we get to the contents of 
+
+declare [ Label Args --> Rules where Logic ].
+
+declare [ X |+ Y ] dcg_rules :-
+	type X string,
+	type Y dcg_rules.
+
+declare [ X Args |+ Y ] dcg_rules :-
+	type X string,
+	type Y dcg_rules
+	type Args o.
+
+--- [ <o> --> <o> ].
+--- [ <string> |+ <string> ] parse_rule.
+--- [ <string> |++ <string> ] parse_rule.
+
+].
+
+--- [ module <module> ] <parse_rule>.
+
+--- [ module_header <T> ] <parse_rule> :-
+	type T [ tuple <integer> <integer> ].
+
+--- [ module_separator ] parse_rule.
+--- [ module_contents <module_contents> ] parse_rule.
+
+module M --> 
+	module_header (Version Size)
+	|+ module_imports (Imports)
+	|+ module_separator 
+	|+ module_contents (Contents)
+:-
+	Version = [+1],
+	create:module result:M1,
+	module M1 size Size imports Imports contents Contents.
+
+module_header Size --> ["vnd.squl v1 size=] | integer Size | nl.
+--- [ this_module <module_ref> ] parse_rule.
+module_imports [ H |= Emnut ] --> this_module H |+ module_imports_rest Emnut.
+this_module M --> module_import M.
+
+module_import (module alias A checksum C) -->  label_chars A |+ ":" |+ label_chars C |+ nl.
+module_imports_rest [ H |= Emnut ]--> 
+		    [ ] ; 
+		    module_import H | module_imports_rest Emnut.
+
+module_separator --> nl | ["--] | nl.
+
+module_contents  [ H |= Emnut ]-->
+		[ ] ;
+		statement H |+ statement_separator |+ module_contents Emnut.
+
+[" soft_st means "Soft statement component".].
+--- [ statement <soft_st> ] parse_rule.
+statement S -->
+	  statement_contents S;
+	  ["(] |+ statement_contents S |+ [")].
+
+--- [ clause <soft_st> ] parse_rule.
+statement_contents [ H ] --> clause H.
+statement_contents [ H |= Emnut ] --> clause H |++ statement_contents Emnut.
+
+clause C --> atom C ; variable C ; literal C ; substatement C.
+
+--- [ substatement <soft_st> ] parse_rule.
+substatement S --> ["(] |+ statement_contents S |+ [")].
+
+--- [ atom <string> ] soft_st.
+atom [ H |=Emnut ] -> label_char H | label_chars Emnut.
+
+declare [ variable <string> ] soft_st.
+variable [ H|=Emnut ] --> 
+	direction_char | variable_char  H | label_chars Emnut;
+	variable_char H | label_chars Emnut.
+
+direction_char --> ['+] ; ['-] ; ['?].
+
+--- [ variable_char <character> ] soft_sts.
+variable_char ['_] --> ['_] ; uppercase XXX.
+
+--- [ label_chars <string> ] parse_rule.
+label_chars C --> label_char C.
+label_chars [ H |= Emnut ] --> label_char H |= label_chars Emnut.
+
+--- [ label_char <character> ] parse_rule.
+label_char C --> character C :-
+	not (illegal_char C).
+
+illegal_char C :-
+	C in ["()[].?].
+
+--- [ literal <soft_st> ] parse_rule.
+--- [ literal_char <soft_st> contents <soft_st> ] <soft_st>.
+--- [ deciding_char <character>] .
+--- [ literal_contents <string> ].
+
+--- [ literal [^soft_st] ] parse_rule.
+--- [ literal_char [.soft_st] contents [.soft_st] ] soft_st.
+
+--- [ deciding_char <character>] .
+--- [ literal_contents <string> ].
+
+literal ( literal_char D contents C ) --> ['[] | deciding_char D | literal_contents C | [']].
+
+literal_contents [ H |= Emnut ] --> character H | literal_contents Emnut :-
+	H ~= ['[],
+	H ~= [']].
+
+[" Allow square brackets in literals, but only if they match. ].
+literal_contents [ ['[] |= Emnu =| [']] ] --> ['[] | literal_contents Emnu | [']].
+
+

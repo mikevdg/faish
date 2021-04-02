@@ -1,0 +1,1124 @@
+Application/vnd.squl1 ModuleExport size=30857
+mParser217:3CE7E334B0AE39952A56A08E86D940FE
+mBase65:A4791430600148AF45B326E13D8512EE
+--
+module:[	mCompilermanuallyparsed1] metadata:( description:["
+
+I'm a disposable compiler; I have been parsed manually to expand operators.
+
+] ).
+
+:[" About statements and signatures.
+
+This compiler has the concept of hard statements and soft statements. A hard statement is one that already resides in a module and can be queried. A soft statement is one that is made of lists and data structures that represent the hard statement - soft statements are easier to manipulate and are what we use in compilation steps. The last step is to bake the soft statements into hard statements and add them to a module.
+
+A soft statement is a list made of (h:emnut:) and (empty). As a list, each element can be one of:
+
+* (atom:["name])
+* (variable:["Name])
+* (statement:List)
+* (literal: ...TODO...)
+
+TODO: line and column numbers in the source code.
+TODO: typing information.
+
+A soft signature is a flat list containing only:
+
+* (atom:["name])
+* (type:Type)
+
+].
+
+:[" Compilation steps.
+
+Currently, just one module is passed around to manage the compilation. Everything is stored in there:
+- soft signatures (declarations)
+- hard signatures
+- soft statements
+- hard statements
+- errors.
+- (TODO: eventually, compiled code)
+
+The module's exports will determine what queries are possible. The final step of compilation would be to generate code based on those exports, and strip the module of anything that those queries cannot reach.
+
+TODO: Use a special prefix for all statements involved in the compilation process, so they can be removed when finished. $:~.
+
+The steps are as follows:
+
+- Parse the textual source code into soft statements. Everything works on soft statements.
+- Harden all the declarations into signatures.
+- Expand literals.
+- Harden statements:
+	* Check that the type matches.
+      * Check for errors
+	( TODO check for:
+		* Statements that are not used.
+		* Premises that have no matches.
+		* Exports that are not used???
+		* Named variables that are only used once.
+		* Warn about named variables that are used more than twice.
+		* Mismatched variable types.
+		* Missing base cases?  )
+
+TODO: incremental compilation.
+TODO: funky parsing, such as cuddliness and parenthesis elision.
+
+- Finally and only if code is to be generated, compile the exports as queries into executable code and strip the module.
+
+For migrating between images, also make a tool that converts a module into Smalltalk (or other language) statements that create a module from scratch.
+
+].
+
+then:( parseFile:S1 -:M6 )
+if:( create:module result:M1 )
+if:( parseHeader:(+:S1 -:S2) module:(+:M1 -:M2) )
+if:( string:( +:S2 -:EmptyString ) readSoftStatementsInto:( +:M2 -:M3 ) )
+if:( hardenDeclarationsIn:( +:M3 -:M4 ) )
+if:( expandLiteralsIn:( +:M4 -:M5 ) )
+if:( hardenStatementsIn:( +:M5 -:M6 ) ).
+
+:[" TODO: process those module IDs. ].
+
+then:( parseHeader:(+:F1 -:F4) module:(+:M -:M) )
+if:( string:( +:F1 -:F2 ) expect:["Application/vnd.squl1 ModuleExport size=] )
+if:( string:( +:F2 -:F3 ) consumeNumber:Size )
+if:( string:( +:F3 -:F4 ) readModuleIds:ModuleIds ).
+
+:["TODO: Error handling. All soft statements and signatures need to include a line number and column number.
+
+Ordinary compilation errors can go into the module we're building.
+
+ ].
+
+then:( hardenDeclarationsIn:( +:M1 -:M2 ) )
+if:( 
+	module:M1 
+	query:( $:( softStatement:( h:(atom:["declare]) emnut:_ ) ) )
+	iterator:It )
+if:( iterator:It hardenSignaturesIn:( +:M1 -:M2 ) ).
+
+then:( iterator:It hardenSignaturesIn:( +:M1 -:M5 ) )
+if:( iterator:It value:($:(softStatement:Ss)) nextIterator:It2 )
+if:( equals:Ss with:( declare:_ ) )
+if:( create:variableMapping result:V )
+if:( softStatement:Ss module:(+:M1 -:M3) variableMapping:(+:V -:_) hardened:Sh )
+if:( module:M2 add:Sh result:M3 )
+if:( module:M3 add:( $:(signature:Sh) softSignature:Ss ) result:M4 )
+if:( iterator:It2 hardenSignaturesIn:( +:M4 -:M5 ) ).
+
+then:( iterator:It hardenStatementsIn:( +:M1 -:M4 ) )
+if:( iterator:It value:($:(softStatement:Ss)) nextIterator:It2 )
+if:( create:variableMapping result:V )
+if:( softStatement:Ss module:(+:M1 -:M3) variableMapping:(+:V -:_) hardened:Sh )
+if:( module:M2 add:Sh result:M3 )
+if:( iterator:It2 hardenStatementsIn:( +:M3 -:M4 ) ).
+
+then:( string:S1 readSoftStatementsInto:( +:M1 -:M4 ) )
+if:( string:S1 statementStringAtHead:SHead rest:S2 )
+if:( parseSource:SHead module:( +:M1 -:M2 ) result:( success:H ) )
+if:( notEqual:H with:( h:(atom:["declare]) emnut:_ ) )
+if:( module:M2 add:H result:M3 )
+if:( string:S2 readSoftStatementsInto:( +:M3 -:M4 ) ).
+
+then:( string:S1 statementStringAtHead:[".] rest:R )
+if:( h:['.] emnut:R array:S1 ).
+
+then:( string:Hemnut statementStringAtHead:Hem rest:Nut )
+if:( h:B emnut:Okluz array:Hemnut )
+if:( notBlockStartCharacter:B )
+if:( notEqual:B with:['.] )
+if:( string:Okluz statementStringAtHead:Ok rest:Nut )
+if:( h:B emnut:Ok array:Hem ).
+
+then:( string:Hemnut statementStringAtHead:Hem rest:Nut )
+if:( h:B emnut:Okluz array:Hemnut )
+if:( blockStartCharacter:B )
+if:( blockEndCharacter: E )
+if:( array:Okluz split:E hem:BlockContents nut:MoreStatement )
+if:( h:B emnut:BlockContents array:BBlockContents )
+if:( hemu:BBlockContents t:E array:BBlockContentsE )
+if:( string:Okluz statementStringAtHead:Ok rest:Nut )
+if:( hem:BBlockContentsE nut:Ok array:Hem ).
+
+:["TODO: string:statementStringAtHead:rest: can fail at the end of the file. It needs an error. ].
+
+string:( +:_ -:["] ) expect:["].
+
+then:( string:( +:F1 -:F2 ) expect:S )
+if:( h:H emnut:Emnut array:F1 )
+if:( h:H emnut:Okluz array:S )
+if:( string:( +:Emnut -:F2 ) expect:Okluz ).
+
+string:( +:["] -:_ ) consumeNumber:[+0].
+
+then:( string:( +:F1 -:F2 ) consumeNumber:N )
+if:( string:F1 digitStr:Digits rest:F2 )
+if:( parse:Digits integer:N ).
+
+then:( string:Str digitStr:["] rest:Str )
+if:( h:H emnut:Emnut array:Str )
+if:( noResults:( parseChar:H integer:_ ) ).
+
+then:( string:F digitStr:Digits rest:Rest )
+if:( h:H emnut:Emnut array:F )
+if:( parseChar:H integer:_ )
+if:( h:H emnut:Okluz array:Digits )
+if:( string:Emnut digitStr:Okluz rest:Rest ).
+
+:["TODO: read the module IDs properly. ].
+
+then:( string:( +:F -:Mnut ) readModuleIds:todo )
+if:( h:['-] emnut:Emnut array:F1 )
+if:( h:['-] emnut:Mnut array:Emnut )
+if:( h:['
+] emnut:Nut array:Mnut ).
+
+then:( string:( +:F1 -:F2 ) readModuleIds:todo )
+if:( h:H emnut:Emnut array:F1 )
+if:( notEqual:H with:['-] )
+if:( string:(+:Emnut -:F2 ) readModuleIds:todo ).
+
+:[" Soft statements are statements that have been broken up into their components so that they can be worked with using Squl code.
+
+Atoms become ( atom:String )
+Variables become ( variable:String ).
+Most other literals remain unchanged.
+
+Statements are converted to lists. 
+
+E.g.
+a b.
+becomes:
+(h:(atom:["a]) emnut:(h:(atom:["b]) emnut:empty).
+
+a (b c) d X.
+becomes 
+(
+h:(atom:["a]) 
+emnut:( 
+	h:( 
+		h:(atom:["b]) 
+		emnut:(h:(atom:["c]) emnut:empty) 
+	emnut:( 
+		h:(atom:["d]) 
+		emnut:(h:(variable:["X]) emnut:empty)
+	)
+)
+).
+
+In the new version of the language:
+
+a b.
+becomes:
+( (atom ["a]) |= ( (atom ["b]) |= empty ) ).
+
+(a (b c) d X)
+becomes:
+( 
+	(atom ["a]) 
+	|= 
+	(
+		(
+			(atom ["b]) 
+			|= 
+			(
+				(atom ["c]) |= empty
+			)
+		)
+		|= 
+		(
+			(atom ["d]) 
+			|= 
+			(
+				(variable ["X])
+				|=
+				empty
+			)
+		)
+	)
+)
+
+].
+
+then:( 
+	parseSource:String
+	module:(+:M -:M6 )
+	result:( success:H) )
+if:(
+	parse:outerStatement
+	source:String
+	parsed:( success:SoftStatement )
+	module:( +:M -:M2 ) )
+if:( 	
+	cookLiterals:(+:SoftStatement -:SS2 )
+	module:( +:M2 -:M3 ) )
+if:( 
+	create:variableMapping result:V1 )
+if:( 	
+	softStatement:SS2 
+	module:( +:M3 -:M4 ) 
+	variableMapping:(+:V1 -:V2)
+	hardened:H )
+if:( 	
+	module:M4 add:H result:M5 )
+if:( 	
+	module:M5 add:(metadata:(statement:H source:String)) result:M6 ).
+
+then:( 
+	parse:outerStatement
+	source:SourceS
+	parsed:( success:Result )
+	module:( +:M1 -:M2 ) )
+if:(	
+	hemnu:Source t:Terminator array:SourceS )
+if:(	
+	terminator:Terminator )
+if:( 	
+	parse:statement
+	source:Source
+	parsed:( success:Result )
+	module:( +:M1 -:M2 ) ).
+
+then:( test:(outerStatement:S) )
+if:( create:module result:M )
+if:( 
+	parse:outerStatement
+	source:["a b.]
+	parsed:S
+	module:( +:M -:X ) ).
+
+then:( parse:statement source:Source parsed: ( success:Result ) module:( +:Mb -:Ma ) )
+if:( parse:clauses source:Source parsed:( success:Result ) module:( +:Mb -:Ma ) ).
+
+then:( 
+	parse:clauses
+	source:ClauseS
+	parsed:( success:( h:Clause emnut:empty ) ) 
+	module:( +:Mb -:Ma ) )
+if:( parse:clause source:ClauseS parsed:( success: Clause ) module:( +:Mb -:Ma ) ).
+
+then:( 
+	parse:clauses
+	source:Source
+	parsed: ( success:( h:Value emnut:More ) )
+	module:( +:Mb -:Ma ) )
+if:( whitespaceChar:W )
+if:( array:Source split:W hem:Hem nut:Nut )
+if:( parse:clause source:Hem parsed:( success:Value )  module:( +:Mb -:Mc ) )
+if:( stripWhitespace:Nut result:MoreClausesS )
+if:( parse:clauses source:MoreClausesS parsed:( success: More ) module:( +:Mc -:Ma ) ).
+
+then:(
+	parse:clause
+	source:Source
+	parsed:( success:Value )
+	module:( +:Ma -:Mb ) )
+if:( parse:value source:Source parsed:( success:( Value ))  module:(+:Ma -:Mb) ).
+
+then:( parseClauses:Clauses )
+if:( create:module result:Mb )
+if:( parse:clauses source:["a:a b:b] parsed:( success:Clauses ) module:( +:Mb -:Ma ) ).
+
+then:( array:Source split:S hem:["] nut:Nut )
+if:( h:S emnut:Nut array:Source ).
+
+then:( array:Source split:S hem:Hem nut:Nut )
+if:( h:B emnut:Okluz array:Source )
+if:( notEqual:B with:S )
+if:( array:Okluz split:S hem:Ok nut:Nut )
+if:( h:B emnut:Ok array:Hem ).
+
+then:( test:(clause:P) )
+if:( 
+	create:module result:Mb )
+if:( 
+	parse:clause
+	source:["abc]
+	parsed:P
+	module:( +:Mb -:Ma )	
+).
+
+then:( test:( clause3:P) )
+if:( 
+	create:module result:Mb )
+if:( 
+	parse:clause
+	source:["[+4]]
+	parsed:P
+	module:( +:Mb -:Ma )).
+
+then:( test:( clause4:P) )
+if:( 
+	create:module result:Mb )
+if:( 
+	parse:clauses
+	source:["one two three ["hello]]
+	parsed:P
+	module:( +:Mb -:Ma )).
+
+then:( test:( clause5:P) )
+if:( 
+	create:module result:Mb )
+if:( 
+	parse:clause
+	source:["X]
+	parsed:( success:P )
+	module:( +:Mb -:Ma )).
+
+:[" Remove parenthesis. ].
+
+then:( 
+	parse:parenthesizedStatement 
+	source:Source
+	parsed: (success:( Result ))
+	module:( +:Mb -:Ma ) )
+if:( h:['(] emnut:Emnut array:Source )
+if:( hemnu:Statement t:[')] array:Emnut )
+if:( parse:statement source:Statement parsed:( success:Result ) module:( +:Mb -:Ma ) ).
+
+then:( 
+	parse:statement
+	source:Source
+	parsed: (success:Result)
+	module:M )
+if:(
+	parse:parenthesizedStatement 
+	source:Source
+	parsed: (success:Result)
+	module:M ).
+
+then:( 
+	parse:value
+	source:Source
+	parsed:(success:Value)
+	module:M  )
+if:( canBeValue:ValueType )
+if:( parse:ValueType source:Source parsed:(success:Value) module:M ).
+
+canBeValue:variable.
+
+canBeValue:literal.
+
+canBeValue:parenthesizedStatement.
+
+canBeValue:atom.
+
+then:( test:parseStatement )
+if:(
+	create:module result:M )
+if:( 
+	parse:statement
+	source:["a a]
+	parsed:(success:S)
+	module:( +:M -:Ma ) ).
+
+then:( test:(parseValueAtom:Value) )
+if:(
+	create:module result:M )
+if:( 
+	parse:value
+	source:["a]
+	parsed:Value
+	module:( +:M -:Ma ) ).
+
+then:( test:parseValueVariable )
+if:(
+	create:module result:M )
+if:( 
+	parse:value
+	source:["A]
+	parsed:Value
+	module:( +:M -:Ma ) ).
+
+then:( test:parseValueInteger )
+if:(
+	create:module result:M )
+if:( 
+	parse:value
+	source:["[+1]]
+	parsed:Value
+	module:( +:M -:Ma )).
+
+then:( test:( parseValueStatement:S ) )
+if:(
+	create:module result:M )
+if:( 
+	parse:value
+	source:["(a a)]
+	parsed:S
+	module:( +:M -:Ma ) ).
+
+:["Substatements must be surrounded by parenthesis. ].
+
+then:( 
+	parse:substatement
+	source:Source
+	parsed:(success:Statement)
+	module:( +:Mb -:Ma ) )
+if:( h:["(] emnut:Emnut array:Source )
+if:( hemnu:Emnu t:[")] array:Emnut )
+if:( parse:statement source:Emnu parsed:(success:Statement) module:( +:Mb -:Ma )).
+
+:[" Labels can contain any unicode codepoint that's not a separator ].
+
+labelChars:["].
+
+labelCharsRest:["].
+
+then:( 
+	parse:label
+	source:LabelS
+	parsed:(success:LabelS)
+	module:( +:M -:M ) )
+if:( labelChars:LabelS ).
+
+then:( labelChars:Hemnut )
+if:( h:H emnut:Emnut array:Hemnut )
+if:( labelChar:H )
+if:( noResults:( variableChar:H ) )
+if:( labelCharsRest:Emnut ).
+
+then:( labelChar:C )
+if:( character:C )
+if:( noResults:( separator:C ) ).
+
+test:(  labelChar:['a] ).
+
+then:( labelCharsRest:Hemnut )
+if:( h:H emnut:Emnut array:Hemnut )
+if:( labelChar:H )
+if:( labelCharsRest:Emnut ).
+
+test:( labelChars:["abcd] ).
+
+test:( noResults:( labelChars:["XYZ] ) ).
+
+test:( labelChars:["+aX12] ).
+
+separator:['(].
+
+separator:[')].
+
+separator:['.].
+
+separator:['?].
+
+separator:['!].
+
+separator:[':].
+
+separator:[' ].
+
+then:( separator:X )
+if:( openingSquareBracket:X ).
+
+then:( separator:X )
+if:( closingSquareBracket:X ).
+
+then:( 
+	parse:variable 
+	source:Source
+	parsed:(success:( variable:Source ))
+	module:( +:M -:M ) )
+if:( h:H emnut:Emnut array:Source )
+if:( variableChar:H )
+if:( labelCharsRest:Emnut ).
+
+then:( test:variable ) 
+if:( 
+	parse:variable 
+	source:["Va]
+	parsed:(success:( variable:["Va]))
+	module:(+:banana -:M) ).
+
+then:( test:variable2 ) 
+if:( 
+	noResults: (
+		parse:variable 
+		source:["va]
+		parsed:( success:(variable:X))
+		module:(+:banana -:M)
+	)
+).
+
+then:( variableChar:Sc )
+if:( upperCase:Sc ).
+
+test:( variableChar:['S] ).
+
+test:( noResults:( variableChar:["s] ) ).
+
+then:(
+	parse:atom
+	source:AtomS
+	parsed:(success:( atom:AtomS) )
+	module:( +:M -:M ) )
+if:( labelChars:AtomS ).
+
+then:( test:atom )
+if:( create:module result:Ma )
+if:( parse:atom
+		source:["hello]
+		parsed:Atom 
+		module:( +:Ma -:Mb ) ).
+
+:[" Literals need to be parsed in two steps. First, make a statement skeleton. Second, populate the literals.].
+
+:["TODO: I use ['[] below. This won't work.] ].
+
+then:( 
+	parse:literal
+	source:Source
+	parsed:( success:( literal:DecidingChar contents:LiteralS ))
+	module:( +:M -:M ) )
+if:( h:Osb emnut:Emnut array:Source )
+if:( openingSquareBracket:Osb )
+if:( h:DecidingChar emnut:Mnut array:Emnut )
+if:( closingSquareBracket:Csb )
+if:( hemnu:LiteralS t:Csb array:Mnut ).
+
+then:( openingSquareBracket:SquareBracket )
+if:( array:["[]] index:[+1] value:SquareBracket ).
+
+test:(openingSquareBracket:B).
+
+then:( closingSquareBracket:SquareBracket )
+if:( array:["[]] index:[+2] value:SquareBracket ).
+
+test:(closingSquareBracket:B).
+
+:[" Is literalContents:~ used? It should succeed if a literal matches up it's square brackets correctly. Maybe it needs renaming. ].
+
+literalContents:empty.
+
+then:( literalsContents:Source )
+if:( h:H emnut:Emnut array:Hemnut )
+if:( hemnu:Emnu t:T array:Emnut )
+if:( notEqual:H with:['[] )if:( notEqual:H with:[']] )
+if:( notEqual:T with:['[] )if:( notEqual:T with:[']] )
+if:( literalContents:Emnu ).
+
+then:( literalContents:Source )
+if:( h:['[] emnut:Emnut array:Source)if:( hemnu:Emnu t:[']] array:Emnut )
+if:( literalContents: Emnu ).
+
+then:( test:( literalInteger:Int ) )
+if:(
+	create:module result:Mb )
+if:( 
+	parse:literal
+	source:["[+1]]
+	parsed:Int
+	module:( +:Mb -:Ma ) ).
+
+then:( test:( literalString:S ) )
+if:(
+	create:module result:M )
+if:( 
+	parse:literal
+	source:["["hello world]]
+	parsed:S
+	module:( +:M -:_ ) ).
+
+:["TODO: a value can also be a naked number].
+
+:[":-  ].
+
+test:(labelChars:["foo]).
+
+terminator:['.].
+
+terminator:['?].
+
+terminator:['!].
+
+whitespaceChar:[' ].
+
+whitespaceChar:['
+].
+
+whitespaceChar:['	].
+
+then:( whitespace:Hemnut ) if:( array:Hemnut size:S ) if:( whitespace:Hemnut atIndex:S ).
+
+whitespace:Hemnut atIndex:[+0].
+
+then:( whitespace:Hemnut atIndex:Idx )
+if:( array:Hemnut index:Idx value:El )
+if:( whitespaceChar:El )
+if:( n:Idx plus:[-1] result:Idx2 )
+if:( whitespace:Hemnut atIndex:Idx2 ).
+
+test:( whitespace:[" 	    ] ).
+
+test:( noResults:( whitespace:["a] ) ).
+
+:[" Strip whitespace from the front of a string ].
+
+then:( stripWhitespace:Hemnut result:Hemnut )
+if:( h:H emnut:Emnut array:Hemnut )
+if:( noResults:( whitespaceChar:H ) ).
+
+then:( stripWhitespace:Hemnut result:Hemnut )
+if:( cn:Hemnut size:[+0] ).
+
+then:( stripWhitespace:Hemnut result:Bokluz )
+if:( h:H emnut:Emnut array:Hemnut )
+if:( whitespaceChar:H )
+if:( stripWhitespace:Emnut result:Bokluz ).
+
+test:( stripWhitespace:["  	abc] result:["abc] ).
+
+:[" Handling new statements ].
+
+test:( create:variableMapping result:V ).
+
+then:( create:variableMapping result:V )
+if:( create:dictionary result:V ).
+
+then:( variableMapping:(+:(dictionary:V) -:(dictionary:V)) findOrAddMapping:(:A to:B) ) 
+if:( module:V simpleQueryUnunified:( :A to:[\Something] ) iterator:It )
+if:( iterator:It value:(:A to:B) next:_ ).
+
+then:( variableMapping:(+:(dictionary:V) -:(dictionary:V2)) findOrAddMapping:(:A to:B) ) 
+if:( module:V simpleQueryUnunified:( :A to:[\Something] ) iterator:It )
+if:( iteratorIsExhausted:It )
+if:( create:variable result:B )
+if:( module:V add:( :A to:B ) result:V2 ).
+
+then:( test:variableMapping1 )
+if:( create:variableMapping result:V )
+if:( variableMapping:( +:V -:_ ) findOrAddMapping:( :["X] to:[\X] ) ).
+
+then:( test:variableMapping2 )
+if:( create:variableMapping result:V1 )
+if:( variableMapping:( +:V1 -:V2 ) findOrAddMapping:( :["X] to:X ) )
+if:( variableMapping:( +:V2 -:_ ) findOrAddMapping:( :["X] to:X ) ).
+
+:[" softStatement:module:variableMapping:hardened: - will convert, but not populate, a soft statement component to a hard statement component. ].
+
+then:( softStatement:S module:( +:M1 -:M3 ) variableMapping:(+:V1 -:V2) hardened:H )
+if:( equal:S with:( h:_ emnut:_ ) )
+if:( module:(+:M1 -:M2) findOrCreateSignatureFrom:S  result:Signature )
+if:( create:statement fromSignature:Signature module:M2 result:NewStatement )
+if:( softStatement:S statement:NewStatement index:[+1] module:(+:M2 -:M3) variableMapping:(+:V1 -:V2) hardened:H ).
+
+then:( softStatement:( variable:V ) module:( +:M -:M ) variableMapping:(+:V1 -:V2) hardened:Vm )
+if:( variableMapping:(+:V1 -:V2) findOrAddMapping:( :V to:Vm ) ).
+
+then:( softStatement:( atom:A ) module:( +:M1 -:M2 ) variableMapping:(+:V -:V) hardened:H )
+if:( module:( +:M1 -:M2 ) findOrCreateAtom:A result:H ).
+
+softStatement:( literal:A ) module:( +:M -:M ) variableMapping:(+:V -:V) hardened:A.
+
+then:( test: (softStatementLeaf1:H ) )
+if:( create:module result:M )
+if:( create:variableMapping result:V )
+if:( softStatement:( h:(atom:["b]) emnut:empty ) module:(+:M -:_) variableMapping:(+:M -:_ ) hardened:H ).
+
+then:( test: (softStatementLeaf2:H ) )
+if:( create:module result:M )
+if:( create:variableMapping result:V )
+if:( softStatement:( atom:["b] ) module:(+:M -:_) variableMapping:(+:M -:_ ) hardened:H ).
+
+then:( test:( softStatementLeaf3:H ) )
+if:( create:module result:M )
+if:( create:variableMapping result:V )
+if:( softStatement:( variable:["V] ) module:(+:M -:_) variableMapping:(+:V -:_ ) hardened:H ).
+
+softStatement:empty statement:H index:_ module:(+:M -:M) variableMapping:(+:V -:V) hardened:H.
+
+then:( softStatement:( h:( label:L value:V ) emnut:Emnut ) statement:NewStatement index:Idx module:( +:M1 -:M3 ) variableMapping:(+:V1 -:V3) hardened:Result )
+if:( softStatement:V module:(+:M1 -:M2) variableMapping:(+:V1 -:V2) hardened:Vh )
+if:( statement:NewStatement index:Idx value:Vh result:S2 )
+if:( n:Idx plus:[+1] result:Idxn )
+if:( softStatement:Emnut statement:S2 index:Idxn module:( +:M2 -:M3 ) variableMapping:(+:V2 -:V3) hardened:Result ).
+
+then:( test:(softStatement1:H) )
+if:( create:variableMapping result:V )
+if:( create:module result:M1 )
+if:( softStatement: (h:( atom:["a ]) emnut:(h:(atom:["b]) emnut:empty))
+	module:( +:M1 -:M2 ) 
+	variableMapping:(+:V -:V2)
+	hardened:H ).
+
+then:( test:( softStatement2:H) )
+if:( create:variableMapping result:V )
+if:( create:module result:M1 )
+if:( softStatement: (h:( atom:["a ]) emnut:( h:(literal:[\a7600]) emnut:empty))
+	module:( +:M1 -:M2 ) 
+	variableMapping:(+:V -:_)
+	hardened:H ).
+
+then:( test:( softStatement3:H) )
+if:( create:variableMapping result:V )
+if:( create:module result:M1 )
+if:( softStatement: ( h:(atom:["a]) emnut:( h:(variable:["X]) emnut:( h:(atom:["b]) emnut:( h:(variable:["X]) emnut:empty) ) ))
+	module:( +:M1 -:M2 ) 
+	variableMapping:(+:V -:_)
+	hardened:H ).
+
+then:( test:( softStatement4:H) )
+if:( create:variableMapping result:V )
+if:( create:module result:M1 )
+if:( softStatement: ( h:(atom:["a]) emnut:(h:(literal:[+13]) emnut:empty ) )
+	module:( +:M1 -:M2 ) 
+	variableMapping:(+:V -:_)
+	hardened:H ).
+
+then:( test:( softStatement5:H) )
+if:( create:variableMapping result:V )
+if:( create:module result:M1 )
+if:( softStatement: ( h:(atom:["a]) emnut:(h:(atom:["hello]) emnut:empty ) )
+	module:( +:M1 -:M2 ) 
+	variableMapping:(+:V -:_)
+	hardened:H ).
+
+then:( module:( +:M1 -:M2 ) findOrCreateAtom:A result:Atom )
+if:( module:M1 simpleQuery:( metadata:( atom:[\Any] source:A ) ) numResults:[+0] )
+if:( create:atom result:Atom )
+if:( module:M1 add:( metadata:( atom:Atom source:A ) ) result:M2 ).
+
+then:( module:( +:M1 -:M2 ) findOrCreateAtom:A result:Atom )
+if:( module:M1 query:( metadata:( atom:[\Any] source:A ) ) iterator:It )
+if:( iterator:It value:( metadata:( atom:Atom source:A ) ) next:_ ).
+
+:["Soft signature handling ].
+
+:["TODO: Search for declarations here instead and throw an error if not found. Currently I just add new signatures to the module willy nilly. ].
+
+then:( module:(+:M1 -:M2) findOrCreateSignatureFrom:Soft  result:Signature )
+if:( module:M1 simpleQuery:(metadata:( signature:[\X] softSignature:Soft ))  numResults:[+0] )
+if:( cn:Soft size:Arity )
+if:( create:statementSignature module:M1 arity:Arity result:Signature)
+if:( module:M1 add:( metadata:( signature:Signature softSignature:Soft ) ) result:M2 ).
+
+then:( module:(+:M1 -:M2) findOrCreateSignatureFrom:Soft  result:Signature )
+if:( module:M1 simpleQueryUnified:(metadata:( signature:[\X] softSignature:Soft )) iterator:Itr )
+if:( iterator:Itr value:( metadata:( signature:Signature softSignature:_ ) ) next:_).
+
+clauses:empty toSoftSignature:empty.
+
+then:( clauses:(h:H emnut:Emnut) toSoftSignature:(h:B emnut:Okluz) )
+if:( :H asAtomOrVariable:B )
+if:( clauses:Emnut toSoftSignature:Okluz ).
+
+test:( 
+	clauses:( h:(atom:["a]) emnut:( h:( h:(atom:["b]) emnut:empty) emnut:empty))
+	toSoftSignature:( h:(atom:["a]) emnut:(h:_ emnut:empty) ) 
+).
+
+:(atom:A) asAtomOrVariable:(atom:A).
+
+then:( :Z asAtomOrVariable:foo)
+if:( notEqual:Z with:(atom:_) ).
+
+test:(  
+	clauses:( 
+		h:(atom:["a])
+		emnut:( 
+			h:(atom:["b])
+			emnut:empty
+		) 
+	)
+	toSoftSignature:(
+		h:( atom:["a] ) 
+		emnut:( 
+			h:( atom:["b] ) 
+			emnut:empty ) )
+).
+
+test:(  
+	clauses:( 
+		h:(
+			h:(atom:["a])
+			emnut:empty )
+		emnut:( 
+			h:(atom:["b])
+			emnut:empty
+		) 
+	)
+	toSoftSignature:(
+		h:( type:_ ) 
+		emnut:( 
+			h:( atom:["b] ) 
+			emnut:empty ) )
+).
+
+then:( test:( findSignature2:S) )
+if:( create:module result:M )
+if:( module:M add:( metadata:( signature:a softSignature:(h:(atom:a) emnut:empty ) ) ) result:M2 ) 
+if:( module:(+:M2 -:_) findOrCreateSignatureFrom:( h:( label:["a] value:a ) emnut:empty ) result:S ).
+
+then:( test:( findSignature3:S ) )
+if:( create:module result:M )
+if:( module:(+:M -:M2) findOrCreateSignature:(h:(atom:a) emnut:(h:(atom:b) emnut:empty)) arity:[+2] result:S ).
+
+:["TODO clauses:C statement:S populatedStatement:Result 
+
+Given the newly created, empty statement S and the clauses from which it was created, fill in the arguments of the statement with the contents of the clauses. ].
+
+then:( clauses:C statement:S populatedStatement:Result )
+if:( clauses:C clauseIndex:[+1] statement:S populatedStatement:Result ).
+
+clauses:empty clauseIndex:_ statement:S populatedStatement:S.
+
+:[" clauses:(h:(label:_ value:V) emnut:Emnut) clauseIndex:Idx statement:S populatedStatement:Result
+
+The clauses are the expanded version of S, fresh from the parser. Take the actual statement S, recurse through it populating it with values from the clauses. ].
+
+:[" Cooking literals. After literals have been parsed, they also need to be cooked. "Cooked" means that all literals have been converted to statements (or other modifications to the module). UncookedLiterals is a soft statement. Result is a soft statement with all literals cooked.The user needs to provide the (cookLiteral:Literal statement:(+:S -Sr) module:(+:M -:Mr) )UncookedLiterals has not yet been added to the module. ].
+
+then:(
+	cookLiterals:(+:S -:S2)
+	module:(+:M -:M))
+if:(
+	cookLiterals:(+:S -:S2)).
+
+cookLiterals:(+:empty -:empty).
+
+then:( cookLiterals:( +:S -:S ) )
+if:( notALiteral:S ).
+
+then:( cookLiterals:( +:L1 -:L2 ) )
+if:( cookLiteral:( +:L1 -:L2 ) ).
+
+then:( cookLiterals:(
+	+:(h:( label:Label value:Value ) emnut:Emnut )
+	-:(h:( label:Label value:Value2 ) emnut:Okluz) ))
+if:( cookLiterals:( +:Value -:Value2 ) )
+if:( cookLiterals:( +:Emnut -:Okluz ) ).
+
+notALiteral:(atom:_).
+
+notALiteral:(variable:_).
+
+then:( test:( cookLiterals1:Result ) )
+if:( create:module result:M )
+if:( cookLiterals:( +:( h:( label:["a] value:( atom:["a] ) ) emnut:( h:( label:["b] value:( literal:['+] contents:["12] ) ) emnut:empty ) ) -:Result ) module:( +:M -:_ ) ).
+
+then:( test:( cookLiterals2:Result ) )
+if:( create:module result:M )
+if:( cookLiterals:( +:( h:( label:["a] value:( atom:["a] ) ) emnut:( h:( label:["b] value:( literal:['"] contents:["hello] ) ) emnut:empty ) ) -:Result ) module:( +:M -:_ ) ).
+
+:[" The user needs to provide implementations of these. The statement will be added to the module for them. The first version will replace the literal for the user, but the latter two versions require the user to manually replace the literal themselves. Path is a list of integers specifying a path through the statement. Each integer is an index into the statement.Depending on how much damage they want to do, they can implement any of:* cookLiteral:(+:(decidingCharacter:D contents:C) -:L2).* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -:Sr)* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -Sr) module:(+:M -:Mr)].
+
+test:( statement:(+:(h:(label:["foo] value:(literal:['"] contents:["bar])) emnut:empty) -:Sr) path:(h:[+1] emnut:empty) replaceWith:["bar] ).
+
+then:( statement:(	+:S1 -:S2 ) 
+	path:( h:Idx emnut:empty ) 
+	replaceWith:Bar )
+if:( statement:(+:S1 -:S2) index:Idx replaceWith:Bar ).
+
+then:( statement:(	+:S1 -:S3 ) 
+	path:( h:Idx emnut:Emnut ) 
+	replaceWith:Bar )
+if:( statement:S1 index:Idx is:S2 )
+if:( statement:( +:S2 -:S3 ) 
+	path:Emnut
+	replaceWith:Bar ).
+
+statement:S index:[+1] is:S.
+
+then:( statement:( h:_ emnut:Emnut ) index:Idx is:S )
+if:( lesser:[+1] greater:Idx )
+if:( n:Idx plus:[-1] result:Idx2 )
+if:( statement:V index:Idx2 is:S ).
+
+statement:(
+	+:( h:(label:L value:_) emnut:Emnut )
+	-:( h:(label:L value:Bar ) emnut:Emnut ) )
+index:[+1] 
+replaceWith:Bar.
+
+then:( 
+	statement:(
+		+:( h:H emnut:Emnut )
+		-:( h:H emnut:Okluz ) ) 
+	index:Idx 
+	replaceWith:Bar )
+if:( n:Idx plus:[-1] result:Idx2 )
+if:( lesser:[+1] greater:Idx2 )
+if:( statement:( +:Emnut -:Okluz ) index:Idx2 replaceWith:Bar ).
+
+:[" Strings ].
+
+cookLiteral:( +:(literal:['"] contents:C) -:(literal:C) ).
+
+test:( cookLiteral:( +:(literal:['"] contents:["Foo]) -:(literal:["Foo]) )).
+
+:[" Integers ].
+
+:[" TODO: allow whitespace ].
+
+then:( cookLiteral:( +:(literal:['+] contents:C) -:(literal:R) ) ) 
+if:( parse:C integer:R ).
+
+then:( cookLiteral:( +:(literal:['-] contents:C) -:(literal:R) ) ) 
+if:( parse:C integer:N )
+if:( n:N multiply:[-1] result:R ).
+
+test:( cookLiteral:( +:(literal:['+] contents:["13]) -:(literal:[+13] )) ).
+
+test:( cookLiteral:( +:(literal:['-] contents:["13]) -:(literal:[-13]) ) ).
+
+parseChar:['0] integer:[+0].
+
+parseChar:['1] integer:[+1].
+
+parseChar:['2] integer:[+2].
+
+parseChar:['3] integer:[+3].
+
+parseChar:['4] integer:[+4].
+
+parseChar:['5] integer:[+5].
+
+parseChar:['6] integer:[+6].
+
+parseChar:['7] integer:[+7].
+
+parseChar:['8] integer:[+8].
+
+parseChar:['9] integer:[+9].
+
+then:( parse:C integer:R )
+if:( array:C size:[+1] )
+if:( array:C index:[+1] value:Cv )
+if:( parseChar:Cv integer:R ).
+
+then:( parse:C integer:R ) 
+if:( hemnu:Hemnu t:T array:C )
+if:( parseChar:T integer:CN )
+if:( parse:Hemnu integer:HemnuN )
+if:( n:HemnuN multiply:[+10] result:HemnuN10 )
+if:( n:HemnuN10 plus:CN result:R ).
+
+test:( parse:["3] integer:[+3] ).
+
+test:( parse:["13] integer:[+13] ).
+
+:[" Floats ].
+
+:["cookLiteral:(
+ 			+:(literal:['+] contents:[=He-|['.]|-Nut]			
+			-:[=HeI+NutI/(10^(size(NutI)) ]) :-		
+			parse:He integer:HeI,		
+			parse:Nut integer:NutI.
+].
+
+then:( cookLiteral:( +:(literal:['+] contents:C) -:(literal:R) )) 
+if:( array:C split:[".] hem:Hem nut:Nut )
+if:( parse:Hem integer:HemI )
+if:( parse:Nut integer:NutI )
+if:( cn:Nut size:DecimalPlaces ) 
+if:( n:[+10] raisedTo:NutSize result:DR )
+if:( n:NutI divide:DR result:AfterDecimal )
+if:( n:HemI plus:AfterDecimal result:R ).
+
+module:[	mParser159] metadata:( name:["Parser] ).
+
+then:( test:addToVariableMapping )
+
+if:( create:variableMapping result:V )
+
+if:( variableMapping:( +:V -:V2 ) findOrAddMapping:( :["A] to: [\A] ))
+
+if:( variableMapping:( +:V2 -:_) findOrAddMapping:( :["A] to: _ )).
+
+:["Some more comprehensive tests. ].
+
+then:( parseTest:InString result:R )
+if:( create:module result:M1 )
+if:( parseSource:InString module:(+:M1 -:_) result:R ).
+
+:[" TODO: tests for this code: ].
+
+then:( hardenDeclarationsIn:( +:M3 -:M4 ) )
+if:( module:M3 query:( softStatement:[\X] todo:todo ) iterator:It )
+if:( module:( +:M3 -:M4 ) hardenDeclarationsIt:It ).
+
+then:( module:( +:M1 -:M3 ) hardenDeclarationsIt:It ) 
+if:( iterator:It value:SoftStatement nextIterator:It2 )
+if:( module:(+:M1 -:M2) hardenStatement:SoftStatement )
+if:( module:( +:M2 -:M3 ) hardenDeclarationsIt:It ).
+
+then:( module:(+:M1 -:M3) hardenSignature:SoftSignature ) 
+if:( softStatement:SoftSignature arity:A )
+if:( create:statementSignature module:M1 arity:A result:Sig )
+if:( module:M1 add:Sig result:M2 )
+if:( module:M2 add:( signature:Sig source:SoftSignature ) result:M3 ).
+
+test:( parseTest:["
+
+declare: [ a (type a_type) b (type b_type) ].
+declare: [ a ] (type a_type).
+declare: [ b ] (type b_type).
+a a b b.
+
+] result:_ ).
+
+test:( parseTest:["
+
+declare: [ a (type a_type) b (type b_type) ].
+declare: [ a ] (type a_type).
+declare: [ b ] (type b_type).
+a a b b?
+
+] result:_ ).
+
+test:( parseTest:["
+
+declare: [ a (type a_type) b (type u8array) ].
+declare: [ a ] (type a_type).
+
+a a b ["hello].
+
+] result:_ ).
+
+test:( parseTest:["
+
+declare: [ a (type a_type) b (type integer) ].
+declare: [ a ] (type a_type).
+a:a b:[+41].
+
+] result:_ ).
+
+test:( parseTest:["
+
+declare: [ a (type a_type) b (type integer) ].
+declare: [ a ] (type a_type).
+a:a b:[-41].
+
+] result:_ ).
+
+test:( parseTest:["
+
+declare: [ a (type a_type) b (type c_type) ].
+declare: [ a ] (type a_type).
+declare: [ c (type c2_type) ].
+declare: [ c ] (type c2_type).
+a a b (c c).
+
+] result:_ ).
+
+test:( parseTest:["
+
+declare: [ a (type a_type) b (type b_type) ].
+
+a X b X.
+
+] result:_ ).
+
+test:( parseTest:["
+
+declare: [ a (type a_type) b (type b_type) ].
+declare: [ a (type a_type) ] (type b_type).
+a X b (a X).
+
+] result:_ ).
+
+test:( parseTest:["thisIsALongLabel:thisIsALongValue.] result:_ ).
+
+module:[	mParser217] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+

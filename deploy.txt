@@ -1,0 +1,44 @@
+How to deploy Faish
+=================
+
+Do this in order:
+
+Make a new 64-bit image using VisualWorks 8.3 (unfortunately, the WebSupport doesn't support 7.10.)
+UI look: WIndows 98/2000, feel: MS Windows, make sure the right mouse button is <operate>.
+File in:
+	Faish.st
+		- in the debugger that pops up, execute "FaishVariable initialize", restart from FaishVariable class>>from:.
+	Faish-UserInterface.st
+	Faish-Evolution.st
+Edit the "About" box:
+	Go to FaishModuleListUI>>aboutAction and put some good text in there.
+Parcel manager; load packages named:
+	Networking / WebSupport
+	Deploying Applications / RuntimePackager
+Tools -> Runtime Packager:
+	Next
+	"Clean up image" - do this step, then next.
+	"Set common options" - do this step
+		Start-up class is "FaishModuleListUI"
+		Start-up method is "openSingleton"
+		Runtime image name is "faish"
+		"Okay", back to Runtime Packager, "Next".
+	"Specify classes and methods to keep", do this step:
+		Keep all "Faish-*" packages.
+		Keep "ExternalWebBrowser"
+	"Scan for unreferenced items" - do this step.
+	next
+	" Test application"
+		Add URL repository "http://www.squl.org/repo/" (Load -> Edit Repositories -> New URL)
+		Reload repositories (uses network stuff).
+		Load a module (uses MD5).
+		Load help (uses ExternalWebBrowser)
+		Commit the image (uses Kernel.XMLSourceFileFormat)
+		Remove all modules and repositories you added.
+		Close the main window, discard changes.
+	next (there's no need to change memory params)
+	"Strip and save image" - make sure all Faish windows are closed and do this.
+		
+Grab faish.im, faish.sh, visual, faish.exe, put them in a directory together and zip it up: 
+
+$ zip "Faish 0.3.zip" -R "Faish 0.3"/*

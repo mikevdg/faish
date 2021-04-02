@@ -1,0 +1,129 @@
+Application/vnd.squl1 ModuleExport size=3734
+mTesthints36:8780DEC4019E6C46D022C4492B722A66
+--
+module:[	mTesthints8] metadata:( name:["Test hints] ).
+
+module:[	mTesthints1] metadata:( description:["Hints are special statements used by the VM to decide which order to investigate statements. This is their test suite.] ).
+
+:["cull. This hint stops the current search branch altogether and backtracks.hint:(			statement:S			node:N			thread:T			relayIn:Rin			relayOut:Rout			advice:cull ) ].
+
+then:(c:c) if:(c:c).
+
+hint:(
+			statement:(then:(c:c) if:(c:c))
+			node:N
+			thread:T
+			relayIn:anything
+			relayOut:anything
+			advice:cull 
+).
+
+c:d.
+
+test:(c:X).
+
+:[" investigateNextClause:N. This hint forces the clauses of a then-if statement to be searched in the given order. The relay can be used to determine how far deduction has succeeded. The given statement must be an entire then-if clause rather than just its conclusion.hint:(			statement:S			node:N			thread:T			relayIn:Rin			relayOut:Rout			advice:( investigateNextClause:Next ).].
+
+then:( d:d ) 
+if:( e:X )
+if:( f:X ).
+
+hint:(
+			statement:( then:( d:d ) if:( e:[\X] ) if:( f:[\X] ) )
+			node:_
+			thread:_
+			relayIn:[+0]
+			relayOut:[+2]
+			advice:( investigateNextClause:[+2] )
+).
+
+hint:(
+			statement:( then:( d:d ) if:( e:[\X] ) if:( f:[\X] ) )
+			node:_
+			thread:_
+			relayIn:[+2]
+			relayOut:finished
+			advice:( investigateNextClause:[+1] )
+).
+
+then:( e:e ) if:( e:e ).
+
+e:f.
+
+f:f.
+
+test:(d:d).
+
+:["fork:Array. This will possibly fork off threads of execution, one for each element in the array. The elements will be passed back in the (thread:) parameter of subsequent hint queries. Each element in the array will be used in the fork, but whether the VM decides to use multiple threads (and thus CPU cores) depends on whether all CPU cores are already busy.TODO - forking not implemented yet.hint:(			statement:S			searchType:deduction			node:N			thread:T			relayIn:Rin			relayOut:Rout			advice:(fork:Array ).].
+
+:[" useIndex:Array. When investigating statement, the given array is used as an index and statements are investigated in the order they are given in the index. This can be combined with fork: and multiple arrays to gain more concurrency.hint:(			statement:S			searchType:deduction			node:N			thread:T			relayIn:Rin			relayOut:Rout			advice:( useIndex:Array  )].
+
+then:( h:d )
+if:( i:i ).
+
+i:i.
+
+h:c.
+
+h:b.
+
+h:a.
+
+then:( 
+	hint:(
+			statement:( h:[\X] )
+			node:_
+			thread:_
+			relayIn:R
+			relayOut:R
+			advice:( useCatalog:Idx )
+	) )
+if:( create:array size:[+4] result:Idx1 )
+if:( array:Idx1 index:[+1] insert:( h:a ) result:Idx2 )
+if:( array:Idx2 index:[+2] insert:( h:b ) result:Idx3 )
+if:( array:Idx3 index:[+3] insert:( h:c ) result:Idx4 )
+if:( array:Idx4 index:[+4] insert:( then:( h:d ) if:( i:i ) ) result:Idx ).
+
+test:(h:X).
+
+:[" Results for h:X should be in order - h:a, h:b, h:c, h:d. ].
+
+:[" cache. This hint informs the VM that the given statement should be added to a cache. This hint is evaluated after a deduction. (TODO) ].
+
+module:[	mTesthints42] metadata:( retainQuery:[\hint:( statement:( then:( d:d ) if:( e:X ) if:( f:X ) ) node:_ thread:_ relayIn:_ relayOut:_ advice:_ ).] ).
+
+:[" Test that invalid advice will cause an error. ].
+
+then:( g:g )
+if:( g:g ).
+
+test:( g:g ).
+
+hint:(
+			statement:( then:( g:g ) if:( g:g) )
+			node:_
+			thread:_
+			relayIn:R
+			relayOut:R
+			advice:( investigateNextClause:invalidHint )
+).
+
+module:[	mTesthints42] metadata:( retainQuery:[\hint:( statement:( h:X ) node:n thread:t relayIn:a relayOut:S advice:A ).] ).
+
+module:[	mTesthints42] metadata:( retainQuery:[\h:X.] ).
+
+:[" Test that an incorrect useCatalog: hint will cause an error. ].
+
+then:( 
+	hint:(
+			statement:( j:[\X] )
+			node:_
+			thread:_
+			relayIn:R
+			relayOut:R
+			advice:( useIndex:none )
+	) )
+if:( c:d ).
+
+test:( j:X ).
+

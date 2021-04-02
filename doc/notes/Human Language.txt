@@ -1,0 +1,52 @@
+Human Language
+
+This is an idea for a human language based on Squl. For now, we reuse English vocabulary.
+
+Sentences are (Subject Verb Object). The verb specifies a relationship. The verb is never 'is', which is too overloaded. Verbs use their english present tense.
+
+    john give bone
+
+Tense is used as a prefix to a sentence and applies to the whole sentense. Tense can be 'did', 'now', 'will' for past, present and future.
+
+    did john give bone
+    did (john give bone)
+
+Specifiers are prefixes. 'a', 'the', 'this', 'that', 'few', 'many', 'all', 'none', 'exists'. 'few' and 'many' also mean 'some' and 'much'.
+
+    did john give bone
+    did (john give (the bone)).
+
+'all' is synonymous with 'for all'. 'exists' is synonymous with 'there exists'. I'm not sure how variables will use these.
+
+Connectives are logical ('and', 'or', 'xor', 'causes', 'then' (time), ) and are infix. 'not' is postfix. 'or' is not exclusive; 'xor' is exclusive.
+
+    did john give the bone causes now dog hungry.
+    (did (john give (the bone))) causes (now (dog hungry))
+
+Extra bits of information can be appended to a sentence to clarify it's meaning. These all start with a modifier ('in', 'to', 'with', etc). These take the original sentence as an argument and are that sentence with modifiers.
+
+    did ((john drive) (in car) (to market)).
+
+Questions are made using variables.
+
+   john drive in car to market atTime X.
+   john drive in X.
+
+Variables can also be used in statements where several parts of the sentence are the same thing.
+
+Commands are done using variables:
+
+   you drive in car to market atTime now+5 minutes.
+
+Pronouns are the same as english: me, you, he, they.
+ 
+'and' is only a logical connective. Collections are added to using other operators (with, without, union, intersection).
+
+events? 
+'the concept of'
+How do you say:
+Did something happen?
+
+
+adjectives? adverbs?
+
