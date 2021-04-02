@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=30857
-mParser217:3CE7E334B0AE39952A56A08E86D940FE
+Application/vnd.squl1 ModuleExport size=30850
+mParser217:E7ADFAA34F9EDFBB3A862A62DB7306B5
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -852,7 +852,7 @@ if:( module:(+:M2 -:_) findOrCreateSignatureFrom:( h:( label:["a] value:a ) emnu
 
 then:( test:( findSignature3:S ) )
 if:( create:module result:M )
-if:( module:(+:M -:M2) findOrCreateSignature:(h:(atom:a) emnut:(h:(atom:b) emnut:empty)) arity:[+2] result:S ).
+if:( module:(+:M -:M2) findOrCreateSignatureFrom:(h:(atom:a) emnut:(h:(atom:b) emnut:empty)) result:S ).
 
 :["TODO clauses:C statement:S populatedStatement:Result 
 
