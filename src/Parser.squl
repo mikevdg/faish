@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=30724
-mParser215:C7E43A3C754FFC2193A83063B5A7E8F7
+Application/vnd.squl1 ModuleExport size=30723
+mParser215:FDDB4172300C69F4DECFB1A32DD98A8F
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -866,14 +866,14 @@ if:(
 
 cookLiterals:(+:empty -:empty).
 
-then:( cookLiterals:( +:S -:S ) )
-if:( notALiteral:S ).
-
 then:( cookLiterals:(
 	+:(h:V1 emnut:Emnut )
 	-:(h:V2 emnut:Okluz) ))
 if:( cookLiteral:( +:V1 -:V2 ) )
 if:( cookLiterals:( +:Emnut -:Okluz ) ).
+
+then:( cookLiteral:( +:S -:S ) )
+if:( notALiteral:S ).
 
 notALiteral:(atom:_).
 
