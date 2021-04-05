@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=30829
-mParser217:C71B118ACA007EDDD27BDD30FD7D66A0
+Application/vnd.squl1 ModuleExport size=30724
+mParser215:C7E43A3C754FFC2193A83063B5A7E8F7
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -459,41 +459,34 @@ if:( h:["(] emnut:Emnut array:Source )
 if:( hemnu:Emnu t:[")] array:Emnut )
 if:( parse:statement source:Emnu parsed:(success:Statement) module:( +:Mb -:Ma )).
 
-:[" Labels can contain any unicode codepoint that's not a separator ].
+:[" Atoms can contain any unicode codepoint that's not a separator ].
 
-labelChars:["].
+atomChars:["].
 
-labelCharsRest:["].
+atomCharsRest:["].
 
-then:( 
-	parse:label
-	source:LabelS
-	parsed:(success:LabelS)
-	module:( +:M -:M ) )
-if:( labelChars:LabelS ).
-
-then:( labelChars:Hemnut )
+then:( atomChars:Hemnut )
 if:( h:H emnut:Emnut array:Hemnut )
-if:( labelChar:H )
+if:( atomChar:H )
 if:( noResults:( variableChar:H ) )
-if:( labelCharsRest:Emnut ).
+if:( atomCharsRest:Emnut ).
 
-then:( labelChar:C )
+then:( atomChar:C )
 if:( character:C )
 if:( noResults:( separator:C ) ).
 
-test:(  labelChar:['a] ).
+test:(  atomChar:['a] ).
 
-then:( labelCharsRest:Hemnut )
+then:( atomCharsRest:Hemnut )
 if:( h:H emnut:Emnut array:Hemnut )
-if:( labelChar:H )
-if:( labelCharsRest:Emnut ).
+if:( atomChar:H )
+if:( atomCharsRest:Emnut ).
 
-test:( labelChars:["abcd] ).
+test:( atomChars:["abcd] ).
 
-test:( noResults:( labelChars:["XYZ] ) ).
+test:( noResults:( atomChars:["XYZ] ) ).
 
-test:( labelChars:["+aX12] ).
+test:( atomChars:["+aX12] ).
 
 separator:['(].
 
@@ -522,7 +515,7 @@ then:(
 	module:( +:M -:M ) )
 if:( h:H emnut:Emnut array:Source )
 if:( variableChar:H )
-if:( labelCharsRest:Emnut ).
+if:( atomCharsRest:Emnut ).
 
 then:( test:variable ) 
 if:( 
@@ -553,7 +546,7 @@ then:(
 	source:AtomS
 	parsed:(success:( atom:AtomS) )
 	module:( +:M -:M ) )
-if:( labelChars:AtomS ).
+if:( atomChars:AtomS ).
 
 then:( test:atom )
 if:( create:module result:Ma )
@@ -624,7 +617,7 @@ if:(
 
 :[":-  ].
 
-test:(labelChars:["foo]).
+test:(atomChars:["foo]).
 
 terminator:['.].
 
@@ -847,12 +840,12 @@ test:(
 
 then:( test:( findSignature2:S) )
 if:( create:module result:M )
-if:( module:M add:( metadata:( signature:a softSignature:(h:(atom:a) emnut:empty ) ) ) result:M2 ) 
-if:( module:(+:M2 -:_) findOrCreateSignatureFrom:( h:( label:["a] value:a ) emnut:empty ) result:S ).
+if:( module:M add:( metadata:( signature:a softSignature:(h:(atom:["a]) emnut:empty ) ) ) result:M2 ) 
+if:( module:(+:M2 -:_) findOrCreateSignatureFrom:( h:( atom:["a] ) emnut:empty ) result:S ).
 
 then:( test:( findSignature3:S ) )
 if:( create:module result:M )
-if:( module:(+:M -:M2) findOrCreateSignatureFrom:(h:(atom:a) emnut:(h:(atom:b) emnut:empty)) result:S ).
+if:( module:(+:M -:M2) findOrCreateSignatureFrom:(h:(atom:["a]) emnut:(h:(atom:b) emnut:empty)) result:S ).
 
 :["TODO clauses:C statement:S populatedStatement:Result 
 
@@ -862,10 +855,6 @@ then:( clauses:C statement:S populatedStatement:Result )
 if:( clauses:C clauseIndex:[+1] statement:S populatedStatement:Result ).
 
 clauses:empty clauseIndex:_ statement:S populatedStatement:S.
-
-:[" clauses:(h:(label:_ value:V) emnut:Emnut) clauseIndex:Idx statement:S populatedStatement:Result
-
-The clauses are the expanded version of S, fresh from the parser. Take the actual statement S, recurse through it populating it with values from the clauses. ].
 
 :[" Cooking literals. After literals have been parsed, they also need to be cooked. "Cooked" means that all literals have been converted to statements (or other modifications to the module). UncookedLiterals is a soft statement. Result is a soft statement with all literals cooked.The user needs to provide the (cookLiteral:Literal statement:(+:S -Sr) module:(+:M -:Mr) )UncookedLiterals has not yet been added to the module. ].
 
@@ -880,13 +869,10 @@ cookLiterals:(+:empty -:empty).
 then:( cookLiterals:( +:S -:S ) )
 if:( notALiteral:S ).
 
-then:( cookLiterals:( +:L1 -:L2 ) )
-if:( cookLiteral:( +:L1 -:L2 ) ).
-
 then:( cookLiterals:(
-	+:(h:( label:Label value:Value ) emnut:Emnut )
-	-:(h:( label:Label value:Value2 ) emnut:Okluz) ))
-if:( cookLiterals:( +:Value -:Value2 ) )
+	+:(h:V1 emnut:Emnut )
+	-:(h:V2 emnut:Okluz) ))
+if:( cookLiteral:( +:V1 -:V2 ) )
 if:( cookLiterals:( +:Emnut -:Okluz ) ).
 
 notALiteral:(atom:_).
@@ -895,15 +881,56 @@ notALiteral:(variable:_).
 
 then:( test:( cookLiterals1:Result ) )
 if:( create:module result:M )
-if:( cookLiterals:( +:( h:( label:["a] value:( atom:["a] ) ) emnut:( h:( label:["b] value:( literal:['+] contents:["12] ) ) emnut:empty ) ) -:Result ) module:( +:M -:_ ) ).
+if:( 
+    cookLiterals:( 
+        +:( 
+            h:( atom:["a] )
+            emnut:( 
+                h:(atom:["a] ) 
+                emnut:( 
+                    h:( literal:['+] contents:["12] ) 
+                    emnut:empty 
+                ) 
+            )
+        ) 
+        -:Result 
+    ) 
+    module:( +:M -:_ ) 
+).
 
 then:( test:( cookLiterals2:Result ) )
 if:( create:module result:M )
-if:( cookLiterals:( +:( h:( label:["a] value:( atom:["a] ) ) emnut:( h:( label:["b] value:( literal:['"] contents:["hello] ) ) emnut:empty ) ) -:Result ) module:( +:M -:_ ) ).
+if:( 
+    cookLiterals:( 
+        +:( 
+            h:( atom:["a] ) 
+            emnut:( 
+                h:( atom:["b] ) 
+                emnut:( 
+                    h:(literal:['"] contents:["hello] )
+                    emnut:empty 
+                ) 
+            ) 
+        ) 
+        -:Result ) 
+    module:( +:M -:_ ) 
+).
 
 :[" The user needs to provide implementations of these. The statement will be added to the module for them. The first version will replace the literal for the user, but the latter two versions require the user to manually replace the literal themselves. Path is a list of integers specifying a path through the statement. Each integer is an index into the statement.Depending on how much damage they want to do, they can implement any of:* cookLiteral:(+:(decidingCharacter:D contents:C) -:L2).* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -:Sr)* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -Sr) module:(+:M -:Mr)].
 
-test:( statement:(+:(h:(label:["foo] value:(literal:['"] contents:["bar])) emnut:empty) -:Sr) path:(h:[+1] emnut:empty) replaceWith:["bar] ).
+test:( 
+	statement:(
+        +:(
+            h:(atom:["foo]) 
+            emnut:(
+                h:( literal:['"] contents:["bar] )
+                emnut:empty
+            )
+        )
+        -:Sr
+    )
+	path:(h:[+1] emnut:empty) 
+	replaceWith:["bar] ).
 
 then:( statement:(	+:S1 -:S2 ) 
 	path:( h:Idx emnut:empty ) 
@@ -926,10 +953,10 @@ if:( n:Idx plus:[-1] result:Idx2 )
 if:( statement:V index:Idx2 is:S ).
 
 statement:(
-	+:( h:(label:L value:_) emnut:Emnut )
-	-:( h:(label:L value:Bar ) emnut:Emnut ) )
+	+:( h:_ emnut:Emnut )
+	-:( h:ReplaceMe emnut:Emnut ) )
 index:[+1] 
-replaceWith:Bar.
+replaceWith:ReplaceMe.
 
 then:( 
 	statement:(
@@ -1049,11 +1076,13 @@ if:( create:statementSignature module:M1 arity:A result:Sig )
 if:( module:M1 add:Sig result:M2 )
 if:( module:M2 add:( signature:Sig source:SoftSignature ) result:M3 ).
 
+test:( parseTest:["a.] result:_ ).
+
 test:( parseTest:["
 
-declare: [ a (type a_type) b (type b_type) ].
-declare: [ a ] (type a_type).
-declare: [ b ] (type b_type).
+:: [ a (type a_type) b (type b_type) ].
+:: [ a ] (type a_type).
+:: [ b ] (type b_type).
 a a b b.
 
 ] result:_ ).
@@ -1118,7 +1147,7 @@ a X b (a X).
 
 ] result:_ ).
 
-test:( parseTest:["thisIsALongLabel:thisIsALongValue.] result:_ ).
+test:( parseTest:["thisIsALongLabel thisIsALongValue.] result:_ ).
 
-module:[	mParser217] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser215] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
