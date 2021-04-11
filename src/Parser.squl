@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=30723
-mParser215:FDDB4172300C69F4DECFB1A32DD98A8F
+Application/vnd.squl1 ModuleExport size=32470
+mParser230:646A8A901B29200E5A58D72E302874DA
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -270,9 +270,9 @@ then:(
 	parsed:( success:Result )
 	module:( +:M1 -:M2 ) )
 if:(	
-	hemnu:Source t:Terminator array:SourceS )
-if:(	
 	terminator:Terminator )
+if:(	
+	hemnu:Source t:Terminator array:SourceS )
 if:( 	
 	parse:statement
 	source:Source
@@ -296,6 +296,8 @@ then:(
 	parsed:( success:( h:Clause emnut:empty ) ) 
 	module:( +:Mb -:Ma ) )
 if:( parse:clause source:ClauseS parsed:( success: Clause ) module:( +:Mb -:Ma ) ).
+
+:["TODO: OPTIMISATION: the next statement splits an array by whitespace. This will also split literals. Re-write the splitting code to respect literals and this should go a lot faster.].
 
 then:( 
 	parse:clauses
@@ -564,11 +566,23 @@ then:(
 	source:Source
 	parsed:( success:( literal:DecidingChar contents:LiteralS ))
 	module:( +:M -:M ) )
-if:( h:Osb emnut:Emnut array:Source )
 if:( openingSquareBracket:Osb )
+if:( h:Osb emnut:Emnut array:Source )
 if:( h:DecidingChar emnut:Mnut array:Emnut )
 if:( closingSquareBracket:Csb )
 if:( hemnu:LiteralS t:Csb array:Mnut ).
+
+then:( test:(parseLiteral1:Value) ) 
+if:( create:module result:M )
+if:( parse:literal source:["[ b ]] parsed:( success:Value ) module:( +:M -:Mb ) ).
+
+then:( test:(parseLiteral2:Value) ) 
+if:( create:module result:M )
+if:( parse:literal source:["["st]] parsed:( success:Value ) module:( +:M -:Mb ) ).
+
+then:( test:(parseLiteral3:Value) ) 
+if:( create:module result:M )
+if:( parse:literal source:["[+42]] parsed:( success:Value ) module:( +:M -:Mb ) ).
 
 then:( openingSquareBracket:SquareBracket )
 if:( array:["[]] index:[+1] value:SquareBracket ).
@@ -858,19 +872,20 @@ clauses:empty clauseIndex:_ statement:S populatedStatement:S.
 
 :[" Cooking literals. After literals have been parsed, they also need to be cooked. "Cooked" means that all literals have been converted to statements (or other modifications to the module). UncookedLiterals is a soft statement. Result is a soft statement with all literals cooked.The user needs to provide the (cookLiteral:Literal statement:(+:S -Sr) module:(+:M -:Mr) )UncookedLiterals has not yet been added to the module. ].
 
-then:(
-	cookLiterals:(+:S -:S2)
-	module:(+:M -:M))
-if:(
-	cookLiterals:(+:S -:S2)).
-
 cookLiterals:(+:empty -:empty).
 
-then:( cookLiterals:(
-	+:(h:V1 emnut:Emnut )
-	-:(h:V2 emnut:Okluz) ))
-if:( cookLiteral:( +:V1 -:V2 ) )
-if:( cookLiterals:( +:Emnut -:Okluz ) ).
+then:( 
+	cookLiterals:(
+		+:(h:V1 emnut:Emnut )
+		-:(h:V2 emnut:Okluz) ) )
+	module: (
+		+:M1
+		-:Mr )
+if:( cookLiteral:( +:V1 -:V2 ) module:( +:M1 -:M2 ))
+if:( cookLiterals:( +:Emnut -:Okluz ) module:( +:M2 -:Mr ) ).
+
+then:( cookLiteral:S module:(+:M -:M) )
+if:( cookLiteral:S ).
 
 then:( cookLiteral:( +:S -:S ) )
 if:( notALiteral:S ).
@@ -915,6 +930,10 @@ if:(
         -:Result ) 
     module:( +:M -:_ ) 
 ).
+
+then:( test:( cookLiterals3:Result ) )
+if:( create:module result:M )
+if:( cookLiterals:( +:( h:( literal:[' ] contents:["b ] ) emnut:empty ) -:SS2 ) module:( +:M -:M3 ) ).
 
 :[" The user needs to provide implementations of these. The statement will be added to the module for them. The first version will replace the literal for the user, but the latter two versions require the user to manually replace the literal themselves. Path is a list of integers specifying a path through the statement. Each integer is an index into the statement.Depending on how much damage they want to do, they can implement any of:* cookLiteral:(+:(decidingCharacter:D contents:C) -:L2).* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -:Sr)* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -Sr) module:(+:M -:Mr)].
 
@@ -1034,6 +1053,8 @@ test:( parse:["13] integer:[+13] ).
 			parse:Nut integer:NutI.
 ].
 
+:["Integer literals].
+
 then:( cookLiteral:( +:(literal:['+] contents:C) -:(literal:R) )) 
 if:( array:C split:[".] hem:Hem nut:Nut )
 if:( parse:Hem integer:HemI )
@@ -1042,6 +1063,26 @@ if:( cn:Nut size:DecimalPlaces )
 if:( n:[+10] raisedTo:NutSize result:DR )
 if:( n:NutI divide:DR result:AfterDecimal )
 if:( n:HemI plus:AfterDecimal result:R ).
+
+:["Array literals (TODO)].
+
+then:( cookLiteral:( +:( literal:[+32] contents:Array ) -:V2 ) )
+if:todo.
+
+:["Statement literals. These make a soft statement.].
+
+then:( test:(statementLiteral:X) ) 
+if:( create:module result:M ) 
+if:( cookLiterals:( +:( h:( literal:['\] contents:[" a b ] ) emnut:empty ) -:X )
+	module:( +:M -:M3 ) ).
+
+then:( test:(statementLiteral2:X) ) 
+if:( create:module result:M ) 
+if:( cookLiterals:( +:( h:( literal:['\] contents:[" a (type int) b ] ) emnut:empty ) -:X )
+	module:( +:M -:M3 ) ).
+
+then:( cookLiteral:( +:( literal:['\] contents:StatementSource ) -:SoftStatement ) module:(+:M1 -:M2) )
+if:( parse:statement source:StatementSource parsed:SoftStatement module:(+:M1 -:M2) ).
 
 module:[	mParser159] metadata:( name:["Parser] ).
 
@@ -1149,5 +1190,11 @@ a X b (a X).
 
 test:( parseTest:["thisIsALongLabel thisIsALongValue.] result:_ ).
 
-module:[	mParser215] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+test:( parseTest:["[ b ].] result:_ ).
+
+test:( parseTest:["[\ a b].] result:_ ).
+
+test:( parseTest:["[\ a (type int) b (type string) ].] result:_ ).
+
+module:[	mParser230] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
