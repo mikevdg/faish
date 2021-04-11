@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=32470
-mParser230:646A8A901B29200E5A58D72E302874DA
+Application/vnd.squl1 ModuleExport size=32633
+mParser231:EFA01F53C0E37178EABAF59C89BD73AF
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -411,6 +411,15 @@ if:(
 if:( 
 	parse:statement
 	source:["a a]
+	parsed:(success:S)
+	module:( +:M -:Ma ) ).
+
+then:( test:(parseStatement2:S) )
+if:(
+	create:module result:M )
+if:( 
+	parse:statement
+	source:["a b]
 	parsed:(success:S)
 	module:( +:M -:Ma ) ).
 
@@ -872,15 +881,15 @@ clauses:empty clauseIndex:_ statement:S populatedStatement:S.
 
 :[" Cooking literals. After literals have been parsed, they also need to be cooked. "Cooked" means that all literals have been converted to statements (or other modifications to the module). UncookedLiterals is a soft statement. Result is a soft statement with all literals cooked.The user needs to provide the (cookLiteral:Literal statement:(+:S -Sr) module:(+:M -:Mr) )UncookedLiterals has not yet been added to the module. ].
 
-cookLiterals:(+:empty -:empty).
+cookLiterals:(+:empty -:empty) module:(+:M -:M).
 
 then:( 
 	cookLiterals:(
 		+:(h:V1 emnut:Emnut )
-		-:(h:V2 emnut:Okluz) ) )
+		-:(h:V2 emnut:Okluz) )
 	module: (
 		+:M1
-		-:Mr )
+		-:Mr ) )
 if:( cookLiteral:( +:V1 -:V2 ) module:( +:M1 -:M2 ))
 if:( cookLiterals:( +:Emnut -:Okluz ) module:( +:M2 -:Mr ) ).
 
@@ -1073,7 +1082,7 @@ if:todo.
 
 then:( test:(statementLiteral:X) ) 
 if:( create:module result:M ) 
-if:( cookLiterals:( +:( h:( literal:['\] contents:[" a b ] ) emnut:empty ) -:X )
+if:( cookLiterals:( +:( h:( literal:['\] contents:["a b] ) emnut:empty ) -:X )
 	module:( +:M -:M3 ) ).
 
 then:( test:(statementLiteral2:X) ) 
@@ -1196,5 +1205,5 @@ test:( parseTest:["[\ a b].] result:_ ).
 
 test:( parseTest:["[\ a (type int) b (type string) ].] result:_ ).
 
-module:[	mParser230] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser231] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
