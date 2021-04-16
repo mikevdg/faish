@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=32633
-mParser231:EFA01F53C0E37178EABAF59C89BD73AF
+Application/vnd.squl1 ModuleExport size=33177
+mParser236:4F84A61FE09417785763C9A0ECB8628B
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -247,6 +247,7 @@ then:(
 if:(
 	parse:outerStatement
 	source:String
+	remaining:empty
 	parsed:( success:SoftStatement )
 	module:( +:M -:M2 ) )
 if:( 	
@@ -266,16 +267,22 @@ if:(
 
 then:( 
 	parse:outerStatement
-	source:SourceS
+	source:Hemnut
+	remaining: Mnut
 	parsed:( success:Result )
 	module:( +:M1 -:M2 ) )
 if:(	
 	terminator:Terminator )
 if:(	
-	hemnu:Source t:Terminator array:SourceS )
-if:( 	
+	array:Hemnut split:Terminator hem:Bok nut:Emnut )
+if:(
+	whitespaceChar: W )
+if:( 
+	h:W emnut:Mnut array:Emnut )
+if:(
 	parse:statement
-	source:Source
+	source:Bok
+	remaining:empty
 	parsed:( success:Result )
 	module:( +:M1 -:M2 ) ).
 
@@ -284,42 +291,51 @@ if:( create:module result:M )
 if:( 
 	parse:outerStatement
 	source:["a b.]
+	remaining:empty
 	parsed:S
 	module:( +:M -:X ) ).
 
-then:( parse:statement source:Source parsed: ( success:Result ) module:( +:Mb -:Ma ) )
-if:( parse:clauses source:Source parsed:( success:Result ) module:( +:Mb -:Ma ) ).
-
 then:( 
-	parse:clauses
-	source:ClauseS
-	parsed:( success:( h:Clause emnut:empty ) ) 
-	module:( +:Mb -:Ma ) )
-if:( parse:clause source:ClauseS parsed:( success: Clause ) module:( +:Mb -:Ma ) ).
-
-:["TODO: OPTIMISATION: the next statement splits an array by whitespace. This will also split literals. Re-write the splitting code to respect literals and this should go a lot faster.].
-
-then:( 
-	parse:clauses
-	source:Source
-	parsed: ( success:( h:Value emnut:More ) )
-	module:( +:Mb -:Ma ) )
-if:( whitespaceChar:W )
-if:( array:Source split:W hem:Hem nut:Nut )
-if:( parse:clause source:Hem parsed:( success:Value )  module:( +:Mb -:Mc ) )
-if:( stripWhitespace:Nut result:MoreClausesS )
-if:( parse:clauses source:MoreClausesS parsed:( success: More ) module:( +:Mc -:Ma ) ).
+	parse:statement 
+	source:Hemnut
+	remaining:Nut
+	parsed:( success:Result ) 
+	module:( +:M1 -:M3 ) )
+if:( 
+	parse:clause
+	source:Hemnut
+	remaining:Luz
+      parsed:( success:Clause )
+      module:( +:M1 -:M2 ) )
+if:( 
+	parse:statement
+	source:Luz
+	remaining:Nut
+	parsed:( success:Rest )
+	module:( +:M2 -:M3 ) )
+if:(
+	h:Clause emnut:Rest array:Result ).
 
 then:(
 	parse:clause
-	source:Source
-	parsed:( success:Value )
-	module:( +:Ma -:Mb ) )
-if:( parse:value source:Source parsed:( success:( Value ))  module:(+:Ma -:Mb) ).
+	source:Hemnut
+	remaining:Luz
+      parsed:S
+      module:M )
+if:(
+	stripWhitespace:Hemnut result:Emnut )
+if:( 
+	canBeValue:V )
+if:(
+	parse:V
+	source:Emnut
+	remaining:Luz
+	parsed:S
+	module:M ).
 
-then:( parseClauses:Clauses )
-if:( create:module result:Mb )
-if:( parse:clauses source:["a:a b:b] parsed:( success:Clauses ) module:( +:Mb -:Ma ) ).
+:deleteme2.
+
+:deleteme3.
 
 then:( array:Source split:S hem:["] nut:Nut )
 if:( h:S emnut:Nut array:Source ).
@@ -371,31 +387,22 @@ if:(
 
 then:( 
 	parse:parenthesizedStatement 
-	source:Source
+	source:Hemnut
+	remaining:Nut
 	parsed: (success:( Result ))
-	module:( +:Mb -:Ma ) )
-if:( h:['(] emnut:Emnut array:Source )
-if:( hemnu:Statement t:[')] array:Emnut )
-if:( parse:statement source:Statement parsed:( success:Result ) module:( +:Mb -:Ma ) ).
+	module:( +:M1 -:M2 ) )
+if:( h:['(] emnut:Emnut array:Hemnut )
+if:( 
+	parse:statement 
+	source:Emnut 
+	remaining:Mnut
+	parsed:( success:Result ) 
+	module:( +:M1 -:M2 ) )
+if:( h:[')] emnut:Nut array:Mnut ).
 
-then:( 
-	parse:statement
-	source:Source
-	parsed: (success:Result)
-	module:M )
-if:(
-	parse:parenthesizedStatement 
-	source:Source
-	parsed: (success:Result)
-	module:M ).
+:deleteme4.
 
-then:( 
-	parse:value
-	source:Source
-	parsed:(success:Value)
-	module:M  )
-if:( canBeValue:ValueType )
-if:( parse:ValueType source:Source parsed:(success:Value) module:M ).
+:deleteme5.
 
 canBeValue:variable.
 
@@ -459,16 +466,9 @@ if:(
 	parsed:S
 	module:( +:M -:Ma ) ).
 
-:["Substatements must be surrounded by parenthesis. ].
+deleteme:[+7].
 
-then:( 
-	parse:substatement
-	source:Source
-	parsed:(success:Statement)
-	module:( +:Mb -:Ma ) )
-if:( h:["(] emnut:Emnut array:Source )
-if:( hemnu:Emnu t:[")] array:Emnut )
-if:( parse:statement source:Emnu parsed:(success:Statement) module:( +:Mb -:Ma )).
+:deleteme6.
 
 :[" Atoms can contain any unicode codepoint that's not a separator ].
 
@@ -521,12 +521,18 @@ if:( closingSquareBracket:X ).
 
 then:( 
 	parse:variable 
-	source:Source
-	parsed:(success:( variable:Source ))
-	module:( +:M -:M ) )
-if:( h:H emnut:Emnut array:Source )
+	source:Hemnut
+	remaining:Nut
+	parsed:(success:( variable:Bokluz ))
+	module:( +:M1 -:M2 ) )
+if:( h:H emnut:Emnut array:Hemnut )
 if:( variableChar:H )
-if:( atomCharsRest:Emnut ).
+if:( 
+	parse:atomChars
+	source:Emnut
+	remaining:Nut
+	parsed:( success:( atom:Okluz ) )
+	module:(+:M1 -:M2) ).
 
 then:( test:variable ) 
 if:( 
@@ -554,16 +560,74 @@ test:( noResults:( variableChar:["s] ) ).
 
 then:(
 	parse:atom
-	source:AtomS
-	parsed:(success:( atom:AtomS) )
+	source:Hemnut
+	remaining:Nut
+	parsed:(success:( atom:Bokluz) )
 	module:( +:M -:M ) )
-if:( atomChars:AtomS ).
+if:( h:H emnut:Emnut array:Hemnut)
+if:( atomChar:H )
+if:( noResults: (variableChar:H) )
+if:( 
+	parse:atomChars
+	source:Emnut
+	remaining:Nut
+	parsed:(success:( atomChars:Okluz) )
+	module:( +:M -:M ) )
+if:( h:H emnut:Okluz array:Bokluz ).
 
-then:( test:atom )
+parse:atomChars
+source:["]
+remaining:["]
+parsed:(success:( atomChars:["]) )
+module:( +:M -:M ).
+
+then:(
+	parse:atomChars
+	source:Hemnut
+	remaining:Hemnut
+	parsed:(success:( atomChars:["]) )
+	module:( +:M -:M ) )
+if:( h:H emnut:Emnut array:Hemnut)
+if:( noResults:( atomChar:H ) ).
+
+then:(
+	parse:atomChars
+	source:Hemnut
+	remaining:Nut
+	parsed:(success:( atomChars:Bokluz) )
+	module:( +:M -:M ) )
+if:( h:H emnut:Emnut array:Hemnut)
+if:( atomChar:H )
+if:( 
+	parse:atomChars
+	source:Emnut
+	remaining:Nut
+	parsed:(success:( atomChars:Okluz) )
+	module:( +:M -:M ) )
+if:( h:H emnut:Okluz array:Bokluz ).
+
+then:( test:(atom:Atom) )
+if:( create:module result:Ma )
+if:( parse:atom
+		source:["h]
+		remaining:Extra
+		parsed:(success:Atom)
+		module:( +:Ma -:Mb ) ).
+
+then:( test:(atom2:Atom) )
 if:( create:module result:Ma )
 if:( parse:atom
 		source:["hello]
-		parsed:Atom 
+		remaining:Extra
+		parsed:Atom
+		module:( +:Ma -:Mb ) ).
+
+then:( test:(atom3:Atom remaining:R) )
+if:( create:module result:Ma )
+if:( parse:atom
+		source:["hello world]
+		remaining:R
+		parsed:(success:Atom)
 		module:( +:Ma -:Mb ) ).
 
 :[" Literals need to be parsed in two steps. First, make a statement skeleton. Second, populate the literals.].
@@ -572,14 +636,47 @@ if:( parse:atom
 
 then:( 
 	parse:literal
-	source:Source
+	source:Hemnut
+	remaining:Nut
 	parsed:( success:( literal:DecidingChar contents:LiteralS ))
-	module:( +:M -:M ) )
+	module:( +:M -:M2 ) )
 if:( openingSquareBracket:Osb )
-if:( h:Osb emnut:Emnut array:Source )
+if:( h:Osb emnut:Emnut array:Hemnut )
 if:( h:DecidingChar emnut:Mnut array:Emnut )
-if:( closingSquareBracket:Csb )
-if:( hemnu:LiteralS t:Csb array:Mnut ).
+if:( 
+	parse:literalContents
+	source:Mnut
+	remaining:Nut
+	parsed:( success:( literalContents:LiteralS ))
+	module:( +:M -:M2 ) ).
+
+then:(
+	parse:literalContents
+	source:Hemnut
+	remaining:Nut
+	parsed:( success:( literalContents:empty ))
+	module:( +:M -:M ) )
+if:( closingSquareBracket:H )
+if:( h:H emnut:Nut array:Hemnut ).
+
+then:(
+	parse:literalContents
+	source:Hemnut
+	remaining:Nut
+	parsed:( success:( literalContents:Bokluz ))
+	module:( +:M -:M2 ) )
+if:( h:H emnut:Emnut array:Hemnut )
+if:( openingSquareBracket:A )
+if:( closingSquareBracket:B )
+if:( notEqual:H with:B )
+if:( notEqual:H with:A )
+if:( 
+	parse:literalContents
+	source:Emnut
+	remaining:Nut
+	parsed:( success:( literalContents:Okluz ))
+	module:( +:M -:M2 ) )
+if:( h:H emnut:Okluz array:Bokluz).
 
 then:( test:(parseLiteral1:Value) ) 
 if:( create:module result:M )
@@ -607,16 +704,9 @@ test:(closingSquareBracket:B).
 
 literalContents:empty.
 
-then:( literalsContents:Source )
-if:( h:H emnut:Emnut array:Hemnut )
-if:( hemnu:Emnu t:T array:Emnut )
-if:( notEqual:H with:['[] )if:( notEqual:H with:[']] )
-if:( notEqual:T with:['[] )if:( notEqual:T with:[']] )
-if:( literalContents:Emnu ).
+deleteme:[+8].
 
-then:( literalContents:Source )
-if:( h:['[] emnut:Emnut array:Source)if:( hemnu:Emnu t:[']] array:Emnut )
-if:( literalContents: Emnu ).
+deleteme:[+9].
 
 then:( test:( literalInteger:Int ) )
 if:(
@@ -1087,7 +1177,7 @@ if:( cookLiterals:( +:( h:( literal:['\] contents:["a b] ) emnut:empty ) -:X )
 
 then:( test:(statementLiteral2:X) ) 
 if:( create:module result:M ) 
-if:( cookLiterals:( +:( h:( literal:['\] contents:[" a (type int) b ] ) emnut:empty ) -:X )
+if:( cookLiterals:( +:( h:( literal:['\] contents:["a (type int) b] ) emnut:empty ) -:X )
 	module:( +:M -:M3 ) ).
 
 then:( cookLiteral:( +:( literal:['\] contents:StatementSource ) -:SoftStatement ) module:(+:M1 -:M2) )
@@ -1205,5 +1295,5 @@ test:( parseTest:["[\ a b].] result:_ ).
 
 test:( parseTest:["[\ a (type int) b (type string) ].] result:_ ).
 
-module:[	mParser231] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser236] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
