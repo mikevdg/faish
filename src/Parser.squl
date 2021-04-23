@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=33177
-mParser236:4F84A61FE09417785763C9A0ECB8628B
+Application/vnd.squl1 ModuleExport size=33126
+mParser236:332A204BD807ABAD547A8F202F85399A
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -268,21 +268,17 @@ if:(
 then:( 
 	parse:outerStatement
 	source:Hemnut
-	remaining: Mnut
+	remaining: Nut
 	parsed:( success:Result )
 	module:( +:M1 -:M2 ) )
 if:(	
 	terminator:Terminator )
 if:(	
-	array:Hemnut split:Terminator hem:Bok nut:Emnut )
-if:(
-	whitespaceChar: W )
-if:( 
-	h:W emnut:Mnut array:Emnut )
+	array:Hemnut split:Terminator hem:Bok nut:Nut )
 if:(
 	parse:statement
 	source:Bok
-	remaining:empty
+	remaining:["]
 	parsed:( success:Result )
 	module:( +:M1 -:M2 ) ).
 
@@ -291,7 +287,7 @@ if:( create:module result:M )
 if:( 
 	parse:outerStatement
 	source:["a b.]
-	remaining:empty
+	remaining:["]
 	parsed:S
 	module:( +:M -:X ) ).
 
@@ -531,13 +527,14 @@ if:(
 	parse:atomChars
 	source:Emnut
 	remaining:Nut
-	parsed:( success:( atom:Okluz ) )
+	parsed:( success:( atomChars:Okluz ) )
 	module:(+:M1 -:M2) ).
 
 then:( test:variable ) 
 if:( 
 	parse:variable 
 	source:["Va]
+	remaining:R
 	parsed:(success:( variable:["Va]))
 	module:(+:banana -:M) ).
 
