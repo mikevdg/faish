@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=33666
-mParser237:65AD5913900FD7B5C122FAA7B845AC0C
+Application/vnd.squl1 ModuleExport size=33670
+mParser237:0C62C95D7BCAB68954C3F4C25C82E99D
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -311,7 +311,7 @@ if:(
 	parsed:( success:Rest )
 	module:( +:M2 -:M3 ) )
 if:(
-	h:Clause emnut:Rest array:Result ).
+	h:Clause emnut:Rest hemnut:Result ).
 
 then:( 
 	parse:statement 
@@ -426,7 +426,7 @@ canBeValue:parenthesizedStatement.
 
 canBeValue:atom.
 
-then:( test:parseStatement )
+then:( test:(parseStatement:S))
 if:(
 	create:module result:M )
 if:( 
