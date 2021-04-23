@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=33706
-mParser237:D1220082E06BE622E5E6B437D62B36DC
+Application/vnd.squl1 ModuleExport size=33957
+mParser240:4E715C2311D9337198EB3B0128144530
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -313,18 +313,9 @@ if:(
 if:(
 	h:Clause emnut:Rest hemnut:Result ).
 
-then:( 
-	parse:statement 
-	source:Hemnut
-	remaining:Nut
-	parsed:( success:(h:Clause emnut:empty) ) 
-	module:( +:M1 -:M2 ) )
-if:( 
-	parse:clause
-	source:Hemnut
-	remaining:["]
-      parsed:( success:Clause )
-      module:( +:M1 -:M2 ) ).
+parse:statement source:["] remaining:["] parsed:( success:empty )  module:( +:M -:M ).
+
+parse:statement source:[")] remaining:[")] parsed:( success:empty )  module:( +:M -:M ).
 
 then:(
 	parse:clause
@@ -363,6 +354,17 @@ if:(
 	parse:clause
 	source:["abc]
 	remaining:["]
+	parsed:P
+	module:( +:Mb -:Ma )	
+).
+
+then:( test:(clause2:P) )
+if:( 
+	create:module result:Mb )
+if:( 
+	parse:clause
+	source:["abc)]
+	remaining:[")]
 	parsed:P
 	module:( +:Mb -:Ma )	
 ).
@@ -450,9 +452,19 @@ then:( test:(parseValueAtom:Value) )
 if:(
 	create:module result:M )
 if:( 
-	parse:value
+	parse:clause
 	source:["a]
 	remaining:["]
+	parsed:Value
+	module:( +:M -:Ma ) ).
+
+then:( test:(parseValueAtom2:Value) )
+if:(
+	create:module result:M )
+if:( 
+	parse:clause
+	source:["a)]
+	remaining:[")]
 	parsed:Value
 	module:( +:M -:Ma ) ).
 
@@ -460,7 +472,7 @@ then:( test:parseValueVariable )
 if:(
 	create:module result:M )
 if:( 
-	parse:value
+	parse:clause
 	source:["A]
 	remaining:["]
 	parsed:Value
@@ -470,7 +482,7 @@ then:( test:parseValueInteger )
 if:(
 	create:module result:M )
 if:( 
-	parse:value
+	parse:clause
 	source:["[+1]]
 	remaining:["]
 	parsed:Value
@@ -480,7 +492,7 @@ then:( test:( parseValueStatement:S ) )
 if:(
 	create:module result:M )
 if:( 
-	parse:value
+	parse:clause
 	source:["(a a)]
 	remaining:["]
 	parsed:S
@@ -1339,5 +1351,5 @@ test:( parseTest:["[\ a b].] result:_ ).
 
 test:( parseTest:["[\ a (type int) b (type string) ].] result:_ ).
 
-module:[	mParser237] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser240] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
