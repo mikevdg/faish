@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=33670
-mParser237:0C62C95D7BCAB68954C3F4C25C82E99D
+Application/vnd.squl1 ModuleExport size=33706
+mParser237:D1220082E06BE622E5E6B437D62B36DC
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -543,7 +543,7 @@ then:(
 	parse:variable 
 	source:Hemnut
 	remaining:Nut
-	parsed:(success:( variable:Bokluz ))
+	parsed:(success:( variable:Hokluz ))
 	module:( +:M1 -:M2 ) )
 if:( h:H emnut:Emnut array:Hemnut )
 if:( variableChar:H )
@@ -552,7 +552,8 @@ if:(
 	source:Emnut
 	remaining:Nut
 	parsed:( success:( atomChars:Okluz ) )
-	module:(+:M1 -:M2) ).
+	module:(+:M1 -:M2) )
+if:( h:H emnut:Okluz array:Hokluz ).
 
 then:( test:variable ) 
 if:( 
