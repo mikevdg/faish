@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=33957
-mParser240:4E715C2311D9337198EB3B0128144530
+Application/vnd.squl1 ModuleExport size=34504
+mParser242:0103189FE6F65DCDCE8605AD0582E48C
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -247,7 +247,7 @@ then:(
 if:(
 	parse:outerStatement
 	source:String
-	remaining:empty
+	remaining:["]
 	parsed:( success:SoftStatement )
 	module:( +:M -:M2 ) )
 if:( 	
@@ -313,7 +313,9 @@ if:(
 if:(
 	h:Clause emnut:Rest hemnut:Result ).
 
-parse:statement source:["] remaining:["] parsed:( success:empty )  module:( +:M -:M ).
+then:( parse:statement source:S remaining:R parsed:( success:empty )  module:( +:M -:M ) )
+if:( stripWhitespace:S result:["] )
+if:( stripWhitespace:R result:["] ).
 
 parse:statement source:[")] remaining:[")] parsed:( success:empty )  module:( +:M -:M ).
 
@@ -383,7 +385,7 @@ then:( test:( clause4:P) )
 if:( 
 	create:module result:Mb )
 if:( 
-	parse:clauses
+	parse:statement
 	source:["one two three ["hello]]
 	remaining:["]
 	parsed:P
@@ -447,6 +449,18 @@ if:(
 	remaining:["]
 	parsed:(success:S)
 	module:( +:M -:Ma ) ).
+
+then:( test:(parseStatement3:S) )
+if:(
+	create:module result:M )
+if:( 
+	parse:statement
+	source:["b ]
+	remaining:Remaining
+	parsed:(success:S)
+	module:( +:M -:Ma ) )
+if:( 
+	stripWhitespace:Remaining result:["] ).
 
 then:( test:(parseValueAtom:Value) )
 if:(
@@ -782,6 +796,8 @@ if:(
 :[":-  ].
 
 test:(atomChars:["foo]).
+
+:["TODO: the terminator should be followed by whitespace. ].
 
 terminator:['.].
 
@@ -1216,8 +1232,15 @@ if:( n:HemI plus:AfterDecimal result:R ).
 
 :["Array literals (TODO)].
 
-then:( cookLiteral:( +:( literal:[+32] contents:Array ) -:V2 ) )
-if:todo.
+then:( cookLiteral:( +:( literal:[+32] contents:ArraySource ) -:(literal:Literal ) ) module:( +:M1 -:M2 ))
+if:(
+	parse:statement
+	source:ArraySource
+	remaining:Remaining
+	parsed:( success:Literal )
+	module:( +:M1 -:M2 ) )
+if:(
+	stripWhitespace:Remaining result:["] ).
 
 :["Statement literals. These make a soft statement.].
 
@@ -1351,5 +1374,5 @@ test:( parseTest:["[\ a b].] result:_ ).
 
 test:( parseTest:["[\ a (type int) b (type string) ].] result:_ ).
 
-module:[	mParser240] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser242] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
