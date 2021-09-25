@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=34504
-mParser242:0103189FE6F65DCDCE8605AD0582E48C
+Application/vnd.squl1 ModuleExport size=35164
+mParser246:3B87312DA793B04BB8F1D138EF09CC53
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -292,6 +292,9 @@ if:(
 	parsed:S
 	module:( +:M -:X ) ).
 
+then:( parse:statement source:S remaining:S parsed:( success:empty )  module:( +:M -:M ))
+if:( h:[')] emnut:Emnut array:S).
+
 then:( 
 	parse:statement 
 	source:Hemnut
@@ -313,11 +316,11 @@ if:(
 if:(
 	h:Clause emnut:Rest hemnut:Result ).
 
+:["TODO: Why do the remaining characters also get stripped here: ].
+
 then:( parse:statement source:S remaining:R parsed:( success:empty )  module:( +:M -:M ) )
 if:( stripWhitespace:S result:["] )
 if:( stripWhitespace:R result:["] ).
-
-parse:statement source:[")] remaining:[")] parsed:( success:empty )  module:( +:M -:M ).
 
 then:(
 	parse:clause
@@ -462,6 +465,18 @@ if:(
 if:( 
 	stripWhitespace:Remaining result:["] ).
 
+then:( test:(parseStatement4:S) )
+if:(
+	create:module result:M )
+if:( 
+	parse:statement
+	source:["long atoms]
+	remaining:Remaining
+	parsed:(success:S)
+	module:( +:M -:Ma ) )
+if:( 
+	stripWhitespace:Remaining result:["] ).
+
 then:( test:(parseValueAtom:Value) )
 if:(
 	create:module result:M )
@@ -508,6 +523,16 @@ if:(
 if:( 
 	parse:clause
 	source:["(a a)]
+	remaining:["]
+	parsed:S
+	module:( +:M -:Ma ) ).
+
+then:( test:( parseSubstatement:S ) )
+if:(
+	create:module result:M )
+if:( 
+	parse:statement
+	source:["(b c) d]
 	remaining:["]
 	parsed:S
 	module:( +:M -:Ma ) ).
@@ -611,7 +636,7 @@ then:(
 	source:Hemnut
 	remaining:Nut
 	parsed:(success:( atom:Bokluz) )
-	module:( +:M -:M ) )
+	module:( +:M1 -:M2 ) )
 if:( h:H emnut:Emnut array:Hemnut)
 if:( atomChar:H )
 if:( noResults: (variableChar:H) )
@@ -620,7 +645,7 @@ if:(
 	source:Emnut
 	remaining:Nut
 	parsed:(success:( atomChars:Okluz) )
-	module:( +:M -:M ) )
+	module:( +:M1 -:M2 ) )
 if:( h:H emnut:Okluz array:Bokluz ).
 
 parse:atomChars
@@ -677,6 +702,10 @@ if:( parse:atom
 		remaining:R
 		parsed:(success:Atom)
 		module:( +:Ma -:Mb ) ).
+
+then:( test:atomChars )
+if:( create:module result:M1 )
+if:( parse:atomChars source:[" ] remaining:Nut parsed:( success:( atomChars:Okluz ) ) module:( +:M1 -:M2 ) ).
 
 :[" Literals need to be parsed in two steps. First, make a statement skeleton. Second, populate the literals.].
 
@@ -829,11 +858,11 @@ test:( noResults:( whitespace:["a] ) ).
 :[" Strip whitespace from the front of a string ].
 
 then:( stripWhitespace:Hemnut result:Hemnut )
-if:( h:H emnut:Emnut array:Hemnut )
-if:( noResults:( whitespaceChar:H ) ).
+if:( cn:Hemnut size:[+0] ).
 
 then:( stripWhitespace:Hemnut result:Hemnut )
-if:( cn:Hemnut size:[+0] ).
+if:( h:H emnut:Emnut array:Hemnut )
+if:( noResults:( whitespaceChar:H ) ).
 
 then:( stripWhitespace:Hemnut result:Bokluz )
 if:( h:H emnut:Emnut array:Hemnut )
@@ -1099,7 +1128,7 @@ if:(
 
 then:( test:( cookLiterals3:Result ) )
 if:( create:module result:M )
-if:( cookLiterals:( +:( h:( literal:[' ] contents:["b ] ) emnut:empty ) -:SS2 ) module:( +:M -:M3 ) ).
+if:( cookLiterals:( +:( h:( literal:[' ] contents:["b ] ) emnut:empty ) -:Result ) module:( +:M -:M3 ) ).
 
 :[" The user needs to provide implementations of these. The statement will be added to the module for them. The first version will replace the literal for the user, but the latter two versions require the user to manually replace the literal themselves. Path is a list of integers specifying a path through the statement. Each integer is an index into the statement.Depending on how much damage they want to do, they can implement any of:* cookLiteral:(+:(decidingCharacter:D contents:C) -:L2).* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -:Sr)* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -Sr) module:(+:M -:Mr)].
 
@@ -1374,5 +1403,5 @@ test:( parseTest:["[\ a b].] result:_ ).
 
 test:( parseTest:["[\ a (type int) b (type string) ].] result:_ ).
 
-module:[	mParser242] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser246] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
