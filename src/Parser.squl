@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=35164
-mParser246:3B87312DA793B04BB8F1D138EF09CC53
+Application/vnd.squl1 ModuleExport size=36102
+mParser257:24989208E91204E1B72E7F0371CF91D8
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -113,9 +113,12 @@ if:( softStatement:Ss module:(+:M1 -:M3) variableMapping:(+:V -:_) hardened:Sh )
 if:( module:M2 add:Sh result:M3 )
 if:( iterator:It2 hardenStatementsIn:( +:M3 -:M4 ) ).
 
+then:( string:Empty readSoftStatementsInto:( +:M -:M ) )
+if:( stripWhitespace:Empty result:["] ).
+
 then:( string:S1 readSoftStatementsInto:( +:M1 -:M4 ) )
 if:( string:S1 statementStringAtHead:SHead rest:S2 )
-if:( parseSource:SHead module:( +:M1 -:M2 ) result:( success:H ) )
+if:( parseStatement:SHead module:( +:M1 -:M2 ) result:( success:H ) )
 if:( notEqual:H with:( h:(atom:["declare]) emnut:_ ) )
 if:( module:M2 add:H result:M3 )
 if:( string:S2 readSoftStatementsInto:( +:M3 -:M4 ) ).
@@ -125,7 +128,7 @@ if:( h:['.] emnut:R array:S1 ).
 
 then:( string:Hemnut statementStringAtHead:Hem rest:Nut )
 if:( h:B emnut:Okluz array:Hemnut )
-if:( notBlockStartCharacter:B )
+if:( noResults:( blockStartCharacter:B ) )
 if:( notEqual:B with:['.] )
 if:( string:Okluz statementStringAtHead:Ok rest:Nut )
 if:( h:B emnut:Ok array:Hem ).
@@ -139,6 +142,16 @@ if:( h:B emnut:BlockContents array:BBlockContents )
 if:( hemu:BBlockContents t:E array:BBlockContentsE )
 if:( string:Okluz statementStringAtHead:Ok rest:Nut )
 if:( hem:BBlockContentsE nut:Ok array:Hem ).
+
+test:( string:[".] statementStringAtHead:[".] rest:["] ).
+
+test:(string:["a.] statementStringAtHead:["a.] rest:["]).
+
+test:(string:["a. b.] statementStringAtHead:["a.] rest:[" b.]).
+
+test:(string:["[a.] b. c. ] statementStringAtHead:["[a.] b.] rest:[" c. ]).
+
+test:(string:["a (b c). ] statementStringAtHead:["a (b c).] rest:[" ]).
 
 :["TODO: string:statementStringAtHead:rest: can fail at the end of the file. It needs an error. ].
 
@@ -240,8 +253,10 @@ becomes:
 
 ].
 
+:[" Parse one statement including terminator and trailing whitespace. ].
+
 then:( 
-	parseSource:String
+	parseStatement:String
 	module:(+:M -:M6 )
 	result:( success:H) )
 if:(
@@ -274,14 +289,17 @@ then:(
 if:(	
 	terminator:Terminator )
 if:(	
-	array:Hemnut split:Terminator hem:Bok nut:Nut )
+	array:Hemnut split:Terminator hem:Source nut:AfterTerminator )
+if:(
+	stripWhitespace:AfterTerminator result:Nut)
 if:(
 	parse:statement
-	source:Bok
-	remaining:["]
+	source:Source
+	remaining:BeforeTerminator
 	parsed:( success:Result )
 	module:( +:M1 -:M2 ) )
-if:(stripWhitespace:Nut result:["]).
+if:(
+	stripWhitespace:BeforeTerminator result:["] ).
 
 then:( test:(outerStatement:S) )
 if:( create:module result:M )
@@ -537,6 +555,16 @@ if:(
 	parsed:S
 	module:( +:M -:Ma ) ).
 
+then:( test:( parseSubstatement2:S ) )
+if:(
+	create:module result:M )
+if:( 
+	parse:statement
+	source:["a (b c)]
+	remaining:["]
+	parsed:S
+	module:( +:M -:Ma ) ).
+
 deleteme:[+7].
 
 :deleteme6.
@@ -579,8 +607,6 @@ separator:['.].
 separator:['?].
 
 separator:['!].
-
-separator:[':].
 
 separator:[' ].
 
@@ -1303,9 +1329,9 @@ if:( variableMapping:( +:V2 -:_) findOrAddMapping:( :["A] to: _ )).
 
 :["Some more comprehensive tests. ].
 
-then:( parseTest:InString result:R )
+then:( parseTest:ModuleSource result:R )
 if:( create:module result:M1 )
-if:( parseSource:InString module:(+:M1 -:_) result:R ).
+if:( string:ModuleSource readSoftStatementsInto:(+:M1 -:R) ).
 
 :[" TODO: tests for this code: ].
 
@@ -1325,6 +1351,14 @@ if:( module:M1 add:Sig result:M2 )
 if:( module:M2 add:( signature:Sig source:SoftSignature ) result:M3 ).
 
 test:( parseTest:["a.] result:_ ).
+
+test:( parseTest:[" a b.] result:_ ).
+
+test:( parseTest:["a b. ] result:_ ).
+
+test:( parseTest:["a b. c d.] result:_ ).
+
+test:( parseTest:["a (b c).] result:_ ).
 
 test:( parseTest:["
 
@@ -1403,5 +1437,5 @@ test:( parseTest:["[\ a b].] result:_ ).
 
 test:( parseTest:["[\ a (type int) b (type string) ].] result:_ ).
 
-module:[	mParser246] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser257] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <st-source>
-<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 15 January 2019 at 9:57:25 PM</time-stamp>
+<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 1 October 2021 at 11:16:10 PM</time-stamp>
 
 
 <component-created>
@@ -224,7 +224,7 @@
 <super>Core.Object</super>
 <private>false</private>
 <indexed-type>none</indexed-type>
-<inst-vars>baked </inst-vars>
+<inst-vars>baked sid </inst-vars>
 <class-inst-vars></class-inst-vars>
 <imports></imports>
 <category>Faish</category>
@@ -1252,29 +1252,33 @@
 <methods>
 <class-id>FaishStatementComponent</class-id> <category>accessing</category>
 
-<body package="Faish" selector="truth">truth	" See FaishStatement&gt;&gt;truth. "	^ false.</body>
-
-<body package="Faish" selector="value">value	" To make testing easier. Tests usually call, e.g. FaishLiteral&gt;&gt;value to compare, and this will provide something that fails. "	^ self.</body>
-
-<body package="Faish" selector="isTrue">isTrue	^ false.</body>
-
-<body package="Faish" selector="makeTrue">makeTrue	" See my implementation in FaishStatement. For bits of a statement, I can't be true. This applies to premises, which are assumed to be statements. "</body>
-
 <body package="Faish" selector="bindAllVariables">bindAllVariables</body>
 
-<body package="Faish" selector="identityNumber">identityNumber	" Return a number indicitive of my ranking and size. "	self subclassResponsibility.</body>
-
-<body package="Faish" selector="statement">statement	self halt: 'I''m not a statement.'.</body>
-
 <body package="Faish" selector="at:">at: key	self subclassResponsibility.</body>
+
+<body package="Faish" selector="matches:">matches: something	^ self = something.</body>
+
+<body package="Faish" selector="sid">sid	^sid</body>
 
 <body package="Faish" selector="unbindAllVariables">unbindAllVariables	^ self.</body>
 
 <body package="Faish" selector="unwrap">unwrap	" Return a copy of me with statement, atom and variable literals replaced with their contents. "	^ self.</body>
 
-<body package="Faish" selector="at:ifAbsent:">at: key ifAbsent: aBlock	self subclassResponsibility.</body>
+<body package="Faish" selector="identityNumber">identityNumber	" Return a number indicitive of my ranking and size. "	self subclassResponsibility.</body>
 
-<body package="Faish" selector="matches:">matches: something	^ self = something.</body>
+<body package="Faish" selector="sid:">sid: anObject	sid := anObject</body>
+
+<body package="Faish" selector="value">value	" To make testing easier. Tests usually call, e.g. FaishLiteral&gt;&gt;value to compare, and this will provide something that fails. "	^ self.</body>
+
+<body package="Faish" selector="statement">statement	self halt: 'I''m not a statement.'.</body>
+
+<body package="Faish" selector="isTrue">isTrue	^ false.</body>
+
+<body package="Faish" selector="makeTrue">makeTrue	" See my implementation in FaishStatement. For bits of a statement, I can't be true. This applies to premises, which are assumed to be statements. "</body>
+
+<body package="Faish" selector="truth">truth	" See FaishStatement&gt;&gt;truth. "	^ false.</body>
+
+<body package="Faish" selector="at:ifAbsent:">at: key ifAbsent: aBlock	self subclassResponsibility.</body>
 </methods>
 
 <methods>
@@ -1548,6 +1552,8 @@
 <methods>
 <class-id>FaishAtom</class-id> <category>comparing</category>
 
+<body package="Faish" selector="signatureHash">signatureHash	^ self hash.</body>
+
 <body package="Faish" selector="mostlyEquals:">mostlyEquals: another	^ value = another value.</body>
 </methods>
 
@@ -1556,17 +1562,21 @@
 
 <body package="Faish" selector="isFullyUnified">isFullyUnified	^ true.</body>
 
-<body package="Faish" selector="value">value 	^ value</body>
+<body package="Faish" selector="arity">arity	^ 0.</body>
 
 <body package="Faish" selector="heuristic">heuristic	^ value inject: 0 into: [ :i :each |		each asInteger + i ].</body>
 
-<body package="Faish" selector="copy">copy	^ self. "I'm immutable. "</body>
+<body package="Faish" selector="value">value 	^ value</body>
 
-<body package="Faish" selector="printOn:">printOn: aStream	(value isNil) ifTrue: [		aStream nextPut: $a.		self identityHash printOn: aStream.	] ifFalse: [		aStream nextPutAll: value.	].</body>
+<body package="Faish" selector="hash">hash	^ value hash.</body>
+
+<body package="Faish" selector="copy">copy	^ self. "I'm immutable. "</body>
 
 <body package="Faish" selector="isAtom">isAtom	^ true.</body>
 
 <body package="Faish" selector="=">= another	^ value = another value.</body>
+
+<body package="Faish" selector="printOn:">printOn: aStream	(value isNil) ifTrue: [		aStream nextPut: $a.		self identityHash printOn: aStream.	] ifFalse: [		aStream nextPutAll: value.	].</body>
 
 <body package="Faish" selector="value:">value: aString	baked ifNotNil: [ ^ self error: 'Immutable object.' ].	value := aString asSymbol.</body>
 </methods>
@@ -2020,6 +2030,8 @@
 <methods>
 <class-id>FaishLiteral</class-id> <category>accessing</category>
 
+<body package="Faish" selector="sid">sid	" See FaishSession&gt;&gt;prepopulateSignatures:"	self isInteger ifTrue: [ ^ 20 ].	self notYetImplemented.</body>
+
 <body package="Faish" selector="value">value	^value</body>
 </methods>
 
@@ -2200,7 +2212,7 @@
 
 <body package="Faish" selector="prepareHintsFor:">prepareHintsFor: statement	" See also &gt;&gt;reset. "	| hintQ hintI |	hintQ := FaishModule hintQuery.	hintI := hintQ atIndex: 1.	self setHintsAvailableForStatement: statement preparedHintsQuery: hintQ arg1: hintI.</body>
 
-<body package="Faish" selector="reset">reset	" Clear and re-query all the hints. In the future, I might do other stuff."	|  hintQ hintI |	" There are quite a few possible ways of doing this. This one is the 'nuke it from orbit' approach. "		" See also prepareHintsFor&gt;&gt;"		hintQ := FaishModule hintQuery.	hintI := hintQ atIndex: 1.		axioms do: [:each | 		self setHintsAvailableForStatement: each preparedHintsQuery: hintQ arg1: hintI.	].	needsReset := false.</body>
+<body package="Faish" selector="reset">reset	" Clear and re-query all the hints. In the future, I might do other stuff."	|  hintQ hintI |	" There are quite a few possible ways of doing this. This one is the 'nuke it from orbit' approach. "		" See also prepareHintsFor&gt;&gt;"		hintQ := FaishModule hintQuery.	hintI := hintQ atIndex: 1.		axioms do: [:each | 		each isStatement ifTrue: [			self setHintsAvailableForStatement: each preparedHintsQuery: hintQ arg1: hintI.		].	].	needsReset := false.</body>
 </methods>
 
 <methods>
@@ -2354,6 +2366,8 @@
 <body package="Faish" selector="hash">hash	^ args hash.</body>
 
 <body package="Faish" selector="=">= another	(another isMemberOf: FaishStatement) ifFalse: [ ^ false ].	^ args = another arguments .</body>
+
+<body package="Faish" selector="signatureHash">signatureHash	" Make a hash using only my signature. "	^ (args collect: [ :each | each key]) hash.</body>
 </methods>
 
 <methods>
@@ -2493,7 +2507,7 @@
 
 <body package="Faish" selector="unwrapFrom:">unwrapFrom: anotherStatement	|  |	baked ifNotNil: [ ^ self error. ].	anotherStatement arguments do: [ :each |		args add: (each key -&gt; (each value unwrap)).	].</body>
 
-<body package="Faish" selector="initializeFrom:usingVariableMapping:">initializeFrom: anotherStatement usingVariableMapping: m	| variableMapping |	baked ifNotNil: [ ^ self error. ].	truth := anotherStatement truth.	" We need to be careful that new instances of variables are made, and that the same variable in the new statement is the same instance "	m isNil 		ifTrue: [ 			variableMapping := IdentityDictionary new.						anotherStatement variables do: [ :each |				| copy |				copy := each copy.				variableMapping at: each put: copy ] ]		ifFalse: [ variableMapping := m ].	anotherStatement arguments do: [ :each |		each value isVariable ifTrue: [			args add: (each key -&gt; (variableMapping at: each value))		] ifFalse: [			args add: (each key -&gt; (each value copyUsingVariableMapping: variableMapping)) ] ].	" This might be needed. It's in the wrong place though. This function is recursive, but evaluationOrders only apply to then-if statements. "	"evaluationOrder := anotherStatement evaluationOrder shallowCopy."</body>
+<body package="Faish" selector="initializeFrom:usingVariableMapping:">initializeFrom: anotherStatement usingVariableMapping: m	| variableMapping |	baked ifNotNil: [ ^ self error. ].	truth := anotherStatement truth.	sid := anotherStatement sid.	" We need to be careful that new instances of variables are made, and that the same variable in the new statement is the same instance "	m isNil 		ifTrue: [ 			variableMapping := IdentityDictionary new.						anotherStatement variables do: [ :each |				| copy |				copy := each copy.				variableMapping at: each put: copy ] ]		ifFalse: [ variableMapping := m ].	anotherStatement arguments do: [ :each |		each value isVariable ifTrue: [			args add: (each key -&gt; (variableMapping at: each value))		] ifFalse: [			args add: (each key -&gt; (each value copyUsingVariableMapping: variableMapping)) ] ].	" This might be needed. It's in the wrong place though. This function is recursive, but evaluationOrders only apply to then-if statements. "	"evaluationOrder := anotherStatement evaluationOrder shallowCopy."</body>
 </methods>
 
 <methods>
@@ -2813,6 +2827,12 @@
 <body package="Faish" selector="=">= anotherVariable	^ value = anotherVariable value.</body>
 
 <body package="Faish" selector="mostlyEquals:">mostlyEquals: another	^ another isVariable. " Any variable will do. "</body>
+</methods>
+
+<methods>
+<class-id>FaishVariable</class-id> <category>accessing</category>
+
+<body package="Faish" selector="sid">sid 	^ 19.</body>
 </methods>
 
 <methods>
