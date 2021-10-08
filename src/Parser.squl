@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=36102
-mParser257:24989208E91204E1B72E7F0371CF91D8
+Application/vnd.squl1 ModuleExport size=36473
+mParser257:78788421909C7495DFA49AE36B159591
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -310,6 +310,8 @@ if:(
 	parsed:S
 	module:( +:M -:X ) ).
 
+:[" The next statement is "if we hit a ')', then maybe we've finished a statement. ].
+
 then:( parse:statement source:S remaining:S parsed:( success:empty )  module:( +:M -:M ))
 if:( h:[')] emnut:Emnut array:S).
 
@@ -356,10 +358,6 @@ if:(
 	remaining:Luz
 	parsed:S
 	module:M ).
-
-:deleteme2.
-
-:deleteme3.
 
 then:( array:Source split:S hem:["] nut:Nut )
 if:( h:S emnut:Nut array:Source ).
@@ -438,10 +436,6 @@ if:(
 	parsed:( success:Result ) 
 	module:( +:M1 -:M2 ) )
 if:( h:[')] emnut:Nut array:Mnut ).
-
-:deleteme4.
-
-:deleteme5.
 
 canBeValue:variable.
 
@@ -564,10 +558,6 @@ if:(
 	remaining:["]
 	parsed:S
 	module:( +:M -:Ma ) ).
-
-deleteme:[+7].
-
-:deleteme6.
 
 :[" Atoms can contain any unicode codepoint that's not a separator ].
 
@@ -846,6 +836,26 @@ if:(
 	parsed:S
 	module:( +:M -:_ ) ).
 
+then:( test:( literalStatement:S ) )
+if:(
+	create:module result:M )
+if:( 
+	parse:literal
+	source:["[\a]]
+	remaining:["]
+	parsed:S
+	module:( +:M -:_ ) ).
+
+then:( test:( literalArray:S ) )
+if:(
+	create:module result:M )
+if:( 
+	parse:literal
+	source:["[ a]]
+	remaining:["]
+	parsed:S
+	module:( +:M -:_ ) ).
+
 :["TODO: a value can also be a naked number].
 
 :[":-  ].
@@ -1105,6 +1115,10 @@ then:(
 if:( cookLiteral:( +:V1 -:V2 ) module:( +:M1 -:M2 ))
 if:( cookLiterals:( +:Emnut -:Okluz ) module:( +:M2 -:Mr ) ).
 
+then:( cookLiteral:(+:Substatement -:Result) module:(+:M1 -:M2) )
+if:(equal:Substatement with:(h:_ emnut:_))
+if:(cookLiterals:(+:Substatement -:Result) module:(+:M1 -:M2)).
+
 then:( cookLiteral:S module:(+:M -:M) )
 if:( cookLiteral:S ).
 
@@ -1156,7 +1170,13 @@ then:( test:( cookLiterals3:Result ) )
 if:( create:module result:M )
 if:( cookLiterals:( +:( h:( literal:[' ] contents:["b ] ) emnut:empty ) -:Result ) module:( +:M -:M3 ) ).
 
-:[" The user needs to provide implementations of these. The statement will be added to the module for them. The first version will replace the literal for the user, but the latter two versions require the user to manually replace the literal themselves. Path is a list of integers specifying a path through the statement. Each integer is an index into the statement.Depending on how much damage they want to do, they can implement any of:* cookLiteral:(+:(decidingCharacter:D contents:C) -:L2).* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -:Sr)* cookLiteral:(decidingCharacter:D contents:C) path:P statement:(+:S -Sr) module:(+:M -:Mr)].
+then:( test:( cookLiterals4:Result ) )
+if:( create:module result:M )
+if:( cookLiterals:( +:( h:( atom:["a] ) emnut:( h:( h:( atom:["a] ) emnut:( h:( atom:["b] ) emnut:empty ) ) emnut:empty ) ) -:Result ) module:( +:M -:_ ) ).
+
+then:( test:( cookLiterals5:Result ) )
+if:( create:module result:M )
+if:( cookLiterals:( +:(  h:( literal:[+92] contents:["a ] ) emnut:empty ) -:Result ) module:( +:M -:_ ) ).
 
 test:( 
 	statement:(
@@ -1314,7 +1334,7 @@ if:(
 	parse:statement 
 	source:StatementSource 
 	remaining:["]
-	parsed:SoftStatement 
+	parsed:(success:SoftStatement)
 	module:(+:M1 -:M2) ).
 
 module:[	mParser159] metadata:( name:["Parser] ).
@@ -1433,9 +1453,13 @@ test:( parseTest:["thisIsALongLabel thisIsALongValue.] result:_ ).
 
 test:( parseTest:["[ b ].] result:_ ).
 
-test:( parseTest:["[\ a b].] result:_ ).
+test:( parseTest:["[\a].] result:_ ).
 
 test:( parseTest:["[\ a (type int) b (type string) ].] result:_ ).
+
+then:( test:( parseStatementLiteral:Result) ) 
+if:( create:module result:M)
+if:( parseStatement:["[\a].] module:(+:M -:_) result:Result ).
 
 module:[	mParser257] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
