@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=36473
-mParser257:78788421909C7495DFA49AE36B159591
+Application/vnd.squl1 ModuleExport size=38126
+mParser270:E727704C7E24B9C51BAEBE9117DC744B
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -123,31 +123,77 @@ if:( notEqual:H with:( h:(atom:["declare]) emnut:_ ) )
 if:( module:M2 add:H result:M3 )
 if:( string:S2 readSoftStatementsInto:( +:M3 -:M4 ) ).
 
-then:( string:S1 statementStringAtHead:[".] rest:R )
-if:( h:['.] emnut:R array:S1 ).
+then:( string:S1 statementStringAtHead:Tr rest:R )
+if:( terminator:T )
+if:( h:T emnut:["] array:Tr )
+if:( h:T emnut:R array:S1 ).
 
 then:( string:Hemnut statementStringAtHead:Hem rest:Nut )
 if:( h:B emnut:Okluz array:Hemnut )
 if:( noResults:( blockStartCharacter:B ) )
-if:( notEqual:B with:['.] )
+if:( noResults:( terminator:B ) )
 if:( string:Okluz statementStringAtHead:Ok rest:Nut )
 if:( h:B emnut:Ok array:Hem ).
 
 then:( string:Hemnut statementStringAtHead:Hem rest:Nut )
-if:( h:B emnut:Okluz array:Hemnut )
-if:( blockStartCharacter:B )
-if:( blockEndCharacter: E )
-if:( array:Okluz split:E hem:BlockContents nut:MoreStatement )
-if:( h:B emnut:BlockContents array:BBlockContents )
-if:( hemu:BBlockContents t:E array:BBlockContentsE )
-if:( string:Okluz statementStringAtHead:Ok rest:Nut )
-if:( hem:BBlockContentsE nut:Ok array:Hem ).
+if:( readBlock:Hemnut block:Bok rest:Luz )
+if:( string:Luz statementStringAtHead:Dag rest:Nut )
+if:( hem:Bok nut:Dag array:Hem ).
+
+then:( readBlock:Hemnut block:BlockWithBrackets rest:Luz )
+if:( blockStartCharacter:StartBlock )
+if:( h:StartBlock emnut:Emnut array:Hemnut )
+if:( readToEndOfBlock:Emnut block:BlockWithoutBrackets rest:Luz )
+if:( addBlockBrackets:BlockWithoutBrackets -:BlockWithBrackets ).
+
+test:( readBlock:["[b]x] block:["[b]] rest:["x] ).
+
+then:( readToEndOfBlock:InsideBlock block:BlockWithoutBrackets rest:Luz )
+if:( h:H emnut:Emnut array:InsideBlock )
+if:( blockStartCharacter:Bs )
+if:( notEqual:H with:Bs )
+if:( blockEndCharacter:Be )
+if:( notEqual:H with:Be )
+if:( readToEndOfBlock:Emnut block:RestOfBlock rest:Luz )
+if:( h:H emnut:RestOfBlock array:BlockWithoutBrackets ).
+
+then:( readToEndOfBlock:InsideBlock block:BlockWithoutBrackets rest:Luz )
+if:( blockStartCharacter:Bs )
+if:( h:Bs emnut:Emnut array:InsideBlock )
+if:( readBlock:InsideBlock block:InnerBlock rest:Rest )
+if:( addBlockBrackets:InnerBlock -:InnerBlockWithBrackets )
+if:( readToEndOfBlock:Rest block:RestOfBlock rest:Luz )
+if:( hem:InnerBlockWithBrackets nut:RestOfBlock array:BlockWithoutBrackets ).
+
+then:( readToEndOfBlock:InsideBlock block:["] rest:Emnut )
+if:( blockEndCharacter:Be )
+if:( h:Be emnut:Emnut array:InsideBlock ).
+
+then:( test:( readToEndOfBlock:Emnut block:["abc] rest:["b] ) )
+if:( h:H emnut:Emnut array:["[abc]b] ).
+
+then:( test:( readToEndOfBlock:Emnut block:["ab[d]c] rest:["b] ) )
+if:( h:H emnut:Emnut array:["[ab[d]c]b] ).
+
+then:( addBlockBrackets:BlockWithoutBrackets -:BlockWithBrackets )
+if:( blockStartCharacter:Bs )
+if:( blockEndCharacter:Be )
+if:( h:Bs emnut:BlockWithoutBrackets array:B1 )
+if:( hemnu:B1 t:Be array:BlockWithBrackets ).
+
+test:( addBlockBrackets:["a] -:["[a]] ).
+
+blockStartCharacter:[+91].
+
+blockEndCharacter:[+93].
 
 test:( string:[".] statementStringAtHead:[".] rest:["] ).
 
 test:(string:["a.] statementStringAtHead:["a.] rest:["]).
 
 test:(string:["a. b.] statementStringAtHead:["a.] rest:[" b.]).
+
+test:(string:["a? b.] statementStringAtHead:["a?] rest:[" b.]).
 
 test:(string:["[a.] b. c. ] statementStringAtHead:["[a.] b.] rest:[" c. ]).
 
@@ -1376,6 +1422,8 @@ test:( parseTest:[" a b.] result:_ ).
 
 test:( parseTest:["a b. ] result:_ ).
 
+test:( parseTest:["a? b? ] result:_ ).
+
 test:( parseTest:["a b. c d.] result:_ ).
 
 test:( parseTest:["a (b c).] result:_ ).
@@ -1461,5 +1509,5 @@ then:( test:( parseStatementLiteral:Result) )
 if:( create:module result:M)
 if:( parseStatement:["[\a].] module:(+:M -:_) result:Result ).
 
-module:[	mParser257] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser270] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
