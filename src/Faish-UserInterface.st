@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <st-source>
-<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 15 January 2019 at 9:57:15 PM</time-stamp>
+<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 22 October 2021 at 10:13:36 PM</time-stamp>
 
 
 <component-created>
@@ -699,7 +699,7 @@
 
 <body package="Faish-UserInterface" selector="actionFindParent">actionFindParent	( selectionInTree selection) isNil ifTrue: [ ^ self ].	self goToSearchable: selectionInTree selection searchable parent.</body>
 
-<body package="Faish-UserInterface" selector="actionStepOver">actionStepOver	|  currant next  |	selectionInTree selection isNil ifTrue: [ ^ self ].	currant := selectionInTree selection searchable.		500 timesRepeat: [ 		next := beam step.		( next depth &lt; currant depth ) ifTrue: [			^ self goToSearchable: next		].				next isNil ifTrue: [ 			Dialog warn: 'Search exhausted; no results found.'.			^ self goToSearchable: currant ].		next isGoal ifTrue: [ 			Dialog warn: 'Result found.'.			^ self goToSearchable: next ].		( currant isSiblingOf: next ) ifTrue: [			self goToSearchable: next.			^ self.		].	].	Dialog warn: '500 steps done. Next sibling not found yet.'.	self goToSearchable: next. "Open the tree up."	self goToSearchable: currant.</body>
+<body package="Faish-UserInterface" selector="actionStepOver">actionStepOver	|  currant next  |	selectionInTree selection isNil ifTrue: [ ^ self ].	currant := selectionInTree selection searchable.		50000 timesRepeat: [ 		next := beam step.		( next depth &lt; currant depth ) ifTrue: [			^ self goToSearchable: next		].				next isNil ifTrue: [ 			Dialog warn: 'Search exhausted; no results found.'.			^ self goToSearchable: currant ].		next isGoal ifTrue: [ 			Dialog warn: 'Result found.'.			^ self goToSearchable: next ].		( currant isSiblingOf: next ) ifTrue: [			self goToSearchable: next.			^ self.		].	].	Dialog warn: '50000 steps done. Next sibling not found yet.'.	self goToSearchable: next. "Open the tree up."	self goToSearchable: currant.</body>
 
 <body package="Faish-UserInterface" selector="actionFindSolution">actionFindSolution	| |	19 timesRepeat: [ 		beam step.	].	self goToSearchable: beam step.</body>
 
@@ -781,7 +781,7 @@
 
 <body package="Faish-UserInterface" selector="title">title	^ title.</body>
 
-<body package="Faish-UserInterface" selector="module:">module: aModule	module := aModule.	workingModule := CacheModule new.	workingModule addImport: module.	self queryTitle.</body>
+<body package="Faish-UserInterface" selector="module:">module: aModule	module := aModule.	workingModule := LegacyCacheModule new.	workingModule addImport: module.	self queryTitle.</body>
 
 <body package="Faish-UserInterface" selector="queryTitle">queryTitle	| q r |	q := module queryString: 'device:canvas title:X?' onError: [ :e :i |  Dialog show: e. ^ nil  ].	q timeLimit: 5.	r := q next.	r isNil ifTrue: [		title := module name.	] ifFalse: [		title := (r at: #title) value.	].</body>
 </methods>
@@ -877,7 +877,7 @@
 
 <body package="Faish-UserInterface" selector="queryTitle">queryTitle	module 		withQuerySimply: 'device:cli title:X?' 		do: [ :r | title := (r at: #title) value asString ]		ifNoResults: [ title := module name asString ]		limitTo: 1.</body>
 
-<body package="Faish-UserInterface" selector="module:">module: aModule	module := aModule. 	workingModule := CacheModule new.	workingModule addImport: module.	self queryTitle.</body>
+<body package="Faish-UserInterface" selector="module:">module: aModule	module := aModule. 	workingModule := LegacyCacheModule new.	workingModule addImport: module.	self queryTitle.</body>
 </methods>
 
 <methods>
@@ -931,7 +931,7 @@
 <methods>
 <class-id>FaishRepository</class-id> <category>initialize-release</category>
 
-<body package="Faish-UserInterface" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	indexModule := FaishModule new.	^self</body>
+<body package="Faish-UserInterface" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	indexModule := AbstractModule new.	^self</body>
 
 <body package="Faish-UserInterface" selector="exportModule:onError:">exportModule: aModule onError: errorBlock	self exportModuleImpl: aModule onError: errorBlock.	aModule imports do: [ :each | self exportModuleImpl: each onError: errorBlock ].</body>
 </methods>
@@ -944,9 +944,9 @@
 
 <body package="Faish-UserInterface" selector="writeIndex">writeIndex	Dialog warn: 'For now, write to a file repository and copy to a HTTP server. '.</body>
 
-<body package="Faish-UserInterface" selector="importModuleById:onError:">importModuleById: id onError: errorBlock	| str newModule | 	str := BetterHttpClient getStream: (url, '/', (id asString, '.squl')) onError: [ :message | errorBlock value:message value:nil ] .	newModule := CodeModule new readFrom: str onError: errorBlock.	str close.	^ newModule.</body>
+<body package="Faish-UserInterface" selector="importModuleById:onError:">importModuleById: id onError: errorBlock	| str newModule | 	str := BetterHttpClient getStream: (url, '/', (id asString, '.squl')) onError: [ :message | errorBlock value:message value:nil ] .	newModule := LegacyModule new readFrom: str onError: errorBlock.	str close.	^ newModule.</body>
 
-<body package="Faish-UserInterface" selector="loadIndexOnError:">loadIndexOnError: errorBlock	indexModule := FaishModule new 		readFrom: (BetterHttpClient getStream: (url, '/', 'index.squl') onError: errorBlock)		onError: errorBlock.</body>
+<body package="Faish-UserInterface" selector="loadIndexOnError:">loadIndexOnError: errorBlock	indexModule := AbstractModule new 		readFrom: (BetterHttpClient getStream: (url, '/', 'index.squl') onError: errorBlock)		onError: errorBlock.</body>
 </methods>
 
 <methods>
@@ -1299,7 +1299,7 @@
 <methods>
 <class-id>Faish.FaishFishCanvasUI class</class-id> <category>class initialization</category>
 
-<body package="Faish-UserInterface" selector="showTheFish">showTheFish	| f ev m |	f := FaishFishCanvasUI new.	ev := EvolutionModuleChamber new.	f module: ev.	ev addSourceModule: f workingModule.	m := FaishModule new.	m addStatement: 'device:fish tock:X direction:D.'.	ev addSourceModule: m.	ev populateModules.	f open.</body>
+<body package="Faish-UserInterface" selector="showTheFish">showTheFish	| f ev m |	f := FaishFishCanvasUI new.	ev := EvolutionModuleChamber new.	f module: ev.	ev addSourceModule: f workingModule.	m := AbstractModule new.	m addStatement: 'device:fish tock:X direction:D.'.	ev addSourceModule: m.	ev populateModules.	f open.</body>
 
 <body package="Faish-UserInterface" selector="visualDistance">visualDistance	^ VisualDistance.</body>
 
@@ -1328,7 +1328,7 @@
 
 <body package="Faish-UserInterface" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	model := FaishFishCanvasModel new.	title := 'Feed the fish!'.	keepGoing := true.	tock := 1.	^self</body>
 
-<body package="Faish-UserInterface" selector="module:">module: m	module := m.	workingModule := CacheModule new.	workingModule addImport: module.	queryAction := workingModule parse: 'device:fish tock:X direction:D.'.	queryInput := workingModule parse: 'device:fish tock:X sensor:a value:V.'.	tockInput := workingModule parse: 'tick:X tock:Y.'.</body>
+<body package="Faish-UserInterface" selector="module:">module: m	module := m.	workingModule := LegacyCacheModule new.	workingModule addImport: module.	queryAction := workingModule parse: 'device:fish tock:X direction:D.'.	queryInput := workingModule parse: 'device:fish tock:X sensor:a value:V.'.	tockInput := workingModule parse: 'tick:X tock:Y.'.</body>
 </methods>
 
 <methods>
@@ -1407,11 +1407,11 @@
 
 <body package="Faish-UserInterface" selector="writeIndex">writeIndex	| filename str |	filename := path / 'index.squl'.	str := filename writeStream.	indexModule writeOn: str.	str close.</body>
 
-<body package="Faish-UserInterface" selector="importModuleById:onError:">importModuleById: id onError: errorBlock	| filename readStream newModule |	filename := path / (id, '.squl').	filename isReadable ifFalse: [ ^ errorBlock value: 'Could not read file ', filename asString value: 0]. 	readStream := filename readStream.	newModule := CodeModule new readFrom: readStream onError: errorBlock.	readStream close.	^ newModule.</body>
+<body package="Faish-UserInterface" selector="importModuleById:onError:">importModuleById: id onError: errorBlock	| filename readStream newModule |	filename := path / (id, '.squl').	filename isReadable ifFalse: [ ^ errorBlock value: 'Could not read file ', filename asString value: 0]. 	readStream := filename readStream.	newModule := LegacyModule new readFrom: readStream onError: errorBlock.	readStream close.	^ newModule.</body>
 
 <body package="Faish-UserInterface" selector="exportModuleImpl:onError:">exportModuleImpl: aModule onError: errorBlock	| filename str |	filename := path / aModule repositoryFilename.	str := filename writeStream.	aModule writeOn: str.	str close.	self addModuleToIndex: aModule.</body>
 
-<body package="Faish-UserInterface" selector="loadIndexOnError:">loadIndexOnError: errorBlock	| filename readStream |	filename := path / 'index.squl'.	filename isReadable ifFalse: [ ^ errorBlock value: 'Cannot read file ', filename asString value: 0 ].	readStream := filename readStream.	indexModule := FaishModule new readFrom: readStream onError: errorBlock.	readStream close.</body>
+<body package="Faish-UserInterface" selector="loadIndexOnError:">loadIndexOnError: errorBlock	| filename readStream |	filename := path / 'index.squl'.	filename isReadable ifFalse: [ ^ errorBlock value: 'Cannot read file ', filename asString value: 0 ].	readStream := filename readStream.	indexModule := AbstractModule new readFrom: readStream onError: errorBlock.	readStream close.</body>
 </methods>
 
 <methods>
@@ -1438,9 +1438,9 @@
 <methods>
 <class-id>Faish.FaishModuleListUI class</class-id> <category>shared actions</category>
 
-<body package="Faish-UserInterface" selector="importModuleFromFile">importModuleFromFile	| filename readStream newModule |	filename := Dialog requestFileName: 'Import from file' default: ('module.squl') version: #multipleOld.	filename isEmpty ifTrue: [ ^ nil ].	filename := filename asFilename.	filename isReadable ifFalse: [ Dialog warn: 'File ', filename, ' cannot be read.'. ^ nil. ].	readStream := filename readStream lineEndTransparent. " lineEndTransparent means 'Don't fuck with the line endings.'"	newModule := CodeModule new readFrom: readStream onError: [ :errorString :i | Dialog warn: errorString. ^ nil. ] .	readStream close.	^ newModule.</body>
+<body package="Faish-UserInterface" selector="importModuleFromFile">importModuleFromFile	| filename readStream newModule |	filename := Dialog requestFileName: 'Import from file' default: ('module.squl') version: #multipleOld.	filename isEmpty ifTrue: [ ^ nil ].	filename := filename asFilename.	filename isReadable ifFalse: [ Dialog warn: 'File ', filename, ' cannot be read.'. ^ nil. ].	readStream := filename readStream lineEndTransparent. " lineEndTransparent means 'Don't fuck with the line endings.'"	newModule := LegacyModule new readFrom: readStream onError: [ :errorString :i | Dialog warn: errorString. ^ nil. ] .	readStream close.	^ newModule.</body>
 
-<body package="Faish-UserInterface" selector="importModuleFromFiles">importModuleFromFiles	| filenames readStream newModule dialog result |	dialog := MultiOpenFileDialog new.	dialog		windowTitle: 'Import from file...';		acceptButtonLabel: 'Import';		defaultFilename: 'module.squl';		addFileFilter: 'Squl file (*.squl)' pattern: '*.squl';		addFilterForAllFiles;		fileCondition: #mustBeOld.	filenames := dialog select.	filenames isNil ifTrue: [ ^ self ].		result := Bag new.	(filenames isKindOf: Collection) ifTrue: [		filenames do: [ :each |  |filename|			filename := each asFilename.			filename isReadable ifFalse: [ 				Dialog warn: 'File ', filename, ' cannot be read.'. 				^ #().			].			readStream := filename readStream lineEndTransparent " don't fuck with the line endings. ".			newModule := CodeModule new readFrom: readStream 				onError: [ :errorString :i | Dialog warn: errorString.					readStream close.				^ #().			] .			readStream close.			result add: newModule.		].	] ifFalse: [ |  filename |		filename := filenames asFilename.		filename isReadable ifFalse: [ Dialog warn: 'File ', filename, ' cannot be read.'.				readStream close.				^ #().			].		readStream := filename readStream.		newModule := CodeModule new readFrom: readStream 			onError: [ :errorString :i | Dialog warn: errorString.				readStream close.				^ #().			] .		readStream close.		result add: newModule.	].	^ result.</body>
+<body package="Faish-UserInterface" selector="importModuleFromFiles">importModuleFromFiles	| filenames readStream newModule dialog result |	dialog := MultiOpenFileDialog new.	dialog		windowTitle: 'Import from file...';		acceptButtonLabel: 'Import';		defaultFilename: 'module.squl';		addFileFilter: 'Squl file (*.squl)' pattern: '*.squl';		addFilterForAllFiles;		fileCondition: #mustBeOld.	filenames := dialog select.	filenames isNil ifTrue: [ ^ self ].		result := Bag new.	(filenames isKindOf: Collection) ifTrue: [		filenames do: [ :each |  |filename|			filename := each asFilename.			filename isReadable ifFalse: [ 				Dialog warn: 'File ', filename, ' cannot be read.'. 				^ #().			].			readStream := filename readStream lineEndTransparent " don't fuck with the line endings. ".			newModule := LegacyModule new readFrom: readStream 				onError: [ :errorString :i | Dialog warn: errorString.					readStream close.				^ #().			] .			readStream close.			result add: newModule.		].	] ifFalse: [ |  filename |		filename := filenames asFilename.		filename isReadable ifFalse: [ Dialog warn: 'File ', filename, ' cannot be read.'.				readStream close.				^ #().			].		readStream := filename readStream.		newModule := LegacyModule new readFrom: readStream 			onError: [ :errorString :i | Dialog warn: errorString.				readStream close.				^ #().			] .		readStream close.		result add: newModule.	].	^ result.</body>
 
 <body package="Faish-UserInterface" selector="exportModuleToFile:">exportModuleToFile: aModule	| filename str |	filename := Dialog requestNewFileName: 'Export to file' default: (aModule name, '.squl').	filename isEmpty ifTrue: [ ^ self ].	filename := filename asFilename.	str := filename writeStream.	aModule writeOn: str.	str close.</body>
 </methods>
@@ -1489,7 +1489,7 @@
 
 <body package="Faish-UserInterface" selector="loadFromFileAction">loadFromFileAction	| newModules |	newModules := FaishModuleListUI importModuleFromFiles.	newModules do: [ :each |		FaishModuleKeeper addModule: each.	].	moduleListSelection listHolder changed: #value.	Dialog warn: 'Module(s) loaded.' for: builder window.</body>
 
-<body package="Faish-UserInterface" selector="createNewAction">createNewAction	| name newModule |	[ 	name := Dialog 			request: 'New module''s name: '			initialAnswer: 'NewModule'			onCancel: [ ^ self ].		FaishModuleKeeper existsModuleNamed: name	] whileTrue: [		Dialog warn: 'A module by that name exists'	].			newModule := CodeModule new name: name.	FaishModuleKeeper addModule: newModule.	moduleListSelection listHolder changed: #value.	moduleListSelection selection: newModule.	self openAction.</body>
+<body package="Faish-UserInterface" selector="createNewAction">createNewAction	| name newModule |	[ 	name := Dialog 			request: 'New module''s name: '			initialAnswer: 'NewModule'			onCancel: [ ^ self ].		FaishModuleKeeper existsModuleNamed: name	] whileTrue: [		Dialog warn: 'A module by that name exists'	].			newModule := LegacyModule new name: name.	FaishModuleKeeper addModule: newModule.	moduleListSelection listHolder changed: #value.	moduleListSelection selection: newModule.	self openAction.</body>
 
 <body package="Faish-UserInterface" selector="exportToRepositoryAction">exportToRepositoryAction	| d | 	d := SelectRepositoryDialog new.	d open.		(d cancel value) ifTrue: [ ^ self ].	d repository isNil ifTrue: [ 		Dialog warn: 'Never mind then.'.		^ self 	].	d repository exportModule: (self selectedModule) onError: [ :error :pos | ^ Dialog warn: error ].	Dialog warn: 'Successfully exported.'.</body>
 
@@ -1655,7 +1655,7 @@
 <methods>
 <class-id>Faish.FaishModuleKeeper class</class-id> <category>class initialization</category>
 
-<body package="Faish-UserInterface" selector="addModule:">addModule: aModule	(aModule isKindOf: FaishModule) ifFalse: [ Error raiseErrorString: 'Tried to add non-module to module keeper.' ].	modules add: aModule</body>
+<body package="Faish-UserInterface" selector="addModule:">addModule: aModule	(aModule isKindOf: AbstractModule) ifFalse: [ Error raiseErrorString: 'Tried to add non-module to module keeper.' ].	modules add: aModule</body>
 
 <body package="Faish-UserInterface" selector="removeModule:">removeModule: aModule	modules remove: aModule</body>
 
@@ -1684,7 +1684,7 @@
 <methods>
 <class-id>Faish.FaishModuleUI class</class-id> <category>class initialization</category>
 
-<body package="Faish-UserInterface" selector="initialize">initialize	RetainModuleStatement := (FaishModule new) parse: 'module:thisModule metadata:(retainQuery:X).'.</body>
+<body package="Faish-UserInterface" selector="initialize">initialize	RetainModuleStatement := (AbstractModule new) parse: 'module:thisModule metadata:(retainQuery:X).'.</body>
 </methods>
 
 <methods>
@@ -1839,7 +1839,7 @@
 
 <body package="Faish-UserInterface" selector="module:">module: aModule	module := aModule.	self initializeQueryTreeFromModuleMetadata</body>
 
-<body package="Faish-UserInterface" selector="initialize">initialize	module := CodeModule new.	newStatementIndex := nil.	watchingQueries := false.		ignoreCallbacks := false.	selectionInModuleContentsTree := SelectionInTree new.	selectionInModuleContentsTree list: (TreeModel on: self).	filterField := ValueHolder newString.	filterField value: '*'.	self initializeQueryTree.	self initializeStatementHolder.</body>
+<body package="Faish-UserInterface" selector="initialize">initialize	module := LegacyModule new.	newStatementIndex := nil.	watchingQueries := false.		ignoreCallbacks := false.	selectionInModuleContentsTree := SelectionInTree new.	selectionInModuleContentsTree list: (TreeModel on: self).	filterField := ValueHolder newString.	filterField value: '*'.	self initializeQueryTree.	self initializeStatementHolder.</body>
 
 <body package="Faish-UserInterface" selector="initializeQueryTree">initializeQueryTree	queryTree := SelectionInTree new.	queryResults := QueryTreeRoot new.	queryTree list: (TreeModel on: queryResults).	queryTree tree expandToLevel: 1.</body>
 
@@ -1869,7 +1869,7 @@
 
 <body package="Faish-UserInterface" selector="ruleAlreadyExists:">ruleAlreadyExists: statement	" From addRule:, work out what the user wants to do with a rule that's already there. "	| answer |	answer := Dialog		choose: 'Rule already exists in this module'		labels: (Array with: 'Cancel' with: 'Go to it' with: 'Replace it')		values: #(#cancel #goto #replace)		default: #replace.		"for: self."			(answer = #goto) ifTrue: [		newStatementIndex := nil.		ignoreCallbacks := true.		selectionInModuleContentsTree selectionIndex: (module find: statement)+1.		ignoreCallbacks := false.		^ self.	].	(answer = #replace) ifTrue: [ | pos |		" The statement is the same, but we move it, and we update it's source code formatting "		" Things will move after we remove the statement. Thus: "		pos := selectionInModuleContentsTree selectionIndex - 1.		module remove: statement.		module insert: statement before: pos. 		newStatementIndex := nil.		selectionInModuleContentsTree list refreshRoot.		^ self.	].</body>
 
-<body package="Faish-UserInterface" selector="addQuery:">addQuery: query	| queryNode |	(query isKindOf: FaishStatement) ifFalse: [ self halt ].	queryNode := QueryNode 		onQuery: query 		module: module		selectionInTreeToUpdate: queryTree.	queryNode start.	queryResults addQuery: queryNode.	queryTree list refreshRoot.	self scrollQueryTreeToBottom.</body>
+<body package="Faish-UserInterface" selector="addQuery:">addQuery: query	| queryNode |	(query isKindOf: LegacyFaishStatement) ifFalse: [ self halt ].	queryNode := QueryNode 		onQuery: query 		module: module		selectionInTreeToUpdate: queryTree.	queryNode start.	queryResults addQuery: queryNode.	queryTree list refreshRoot.	self scrollQueryTreeToBottom.</body>
 
 <body package="Faish-UserInterface" selector="handleReadOnly">handleReadOnly	" If the module is read-only, tell the user about it. "	module isReadOnly ifTrue: [ 		Dialog warn: 'This module is read-only.'.		^ true.	].	^ false.</body>
 
@@ -1877,7 +1877,7 @@
 
 <body package="Faish-UserInterface" selector="setEditedStatement:">setEditedStatement: aString	| editWidget |	editWidget := self widgetAt: #editedStatement.	editWidget isEnabled ifTrue: [		self isStatementChanged ifTrue: [		( Dialog			choose: 'Keep changes?'			labels: (Array with: 'Discard' with: 'Keep')			values: #(#discard #keep)			default: #keep		) = #keep			ifTrue: [ ^ self ]			ifFalse: [ 				newStatementIndex := nil.				selectionInModuleContentsTree list refreshRoot.			].		].	] ifFalse: [		editWidget isEnabled: true.	].	editedStatementHolder value: aString.	editedStatementOrig := aString copy.</body>
 
-<body package="Faish-UserInterface" selector="addRuleString:">addRuleString: statementString	| ruleAdded statement errorStatement |	statement := module parse: statementString onError: [ :errorString :i | 		Dialog warn: errorString. 		" TODO: set the cursor position to i here. "		errorStatement :=  CodeModule syntaxErrorStatement: statementString position: i message:errorString.		^ self addRuleString: errorStatement.	 ].	self handleReadOnly ifTrue: [ ^ self ].	" Handle funny cases, such as before anything is selected or when a user edits a query into a statement. "	(selectionInModuleContentsTree selection isNil or: [selectionType ~= #statement]) ifTrue: [		(Dialog confirm: 'Add this as a new statement?') ifTrue: [				newStatementIndex isNil ifTrue: [ 				ruleAdded := module add: statement. 			] ifFalse: [				ruleAdded := module insert: statement before: (newStatementIndex + 1). 			].			ruleAdded isNil ifTrue: [ 				self ruleAlreadyExists: statement.			] ifFalse: [				selectionInModuleContentsTree list refreshRoot.			].			ignoreCallbacks := true.			selectionInModuleContentsTree selectionIndex: (module find: statement)+1.			ignoreCallbacks := false.					].		^ self.	].	selectionInModuleContentsTree selection isNew	ifTrue: [		ruleAdded := module insert: statement before: (newStatementIndex + 1). 		ruleAdded isNil ifTrue: [			^ self ruleAlreadyExists: statement.		].		selectionInModuleContentsTree list refreshRoot.		ignoreCallbacks := true.		selectionInModuleContentsTree selectionIndex: newStatementIndex+2.		newStatementIndex := nil.		selectionInModuleContentsTree list refreshRoot.		ignoreCallbacks := false.	] ifFalse: [		| choice |		choice := Dialog			choose: 'Replace statement?'			labels: (Array with: 'Cancel' with: 'New statement' with: 'Replace statement')			values: #(#cancel #new #replace)			default: #replace.		(choice = #new) ifTrue: [			ruleAdded := module add: statement.			ruleAdded isNil ifTrue: [ self ruleAlreadyExists: statement. ^ self. ].		] ifFalse: [			( choice = #cancel ) ifTrue: [				^ self.			] ifFalse: [				ruleAdded := module replace: (selectionInModuleContentsTree selection target) with: statement.				ruleAdded isNil ifTrue: [ self ruleAlreadyExists: statement ].				newStatementIndex := nil.			].		].			selectionInModuleContentsTree list refreshRoot.		ignoreCallbacks := true.		selectionInModuleContentsTree selectionIndex: (module find: statement)+1.		ignoreCallbacks := false.	].</body>
+<body package="Faish-UserInterface" selector="addRuleString:">addRuleString: statementString	| ruleAdded statement errorStatement |	statement := module parse: statementString onError: [ :errorString :i | 		Dialog warn: errorString. 		" TODO: set the cursor position to i here. "		errorStatement :=  LegacyModule syntaxErrorStatement: statementString position: i message:errorString.		^ self addRuleString: errorStatement.	 ].	self handleReadOnly ifTrue: [ ^ self ].	" Handle funny cases, such as before anything is selected or when a user edits a query into a statement. "	(selectionInModuleContentsTree selection isNil or: [selectionType ~= #statement]) ifTrue: [		(Dialog confirm: 'Add this as a new statement?') ifTrue: [				newStatementIndex isNil ifTrue: [ 				ruleAdded := module add: statement. 			] ifFalse: [				ruleAdded := module insert: statement before: (newStatementIndex + 1). 			].			ruleAdded isNil ifTrue: [ 				self ruleAlreadyExists: statement.			] ifFalse: [				selectionInModuleContentsTree list refreshRoot.			].			ignoreCallbacks := true.			selectionInModuleContentsTree selectionIndex: (module find: statement)+1.			ignoreCallbacks := false.					].		^ self.	].	selectionInModuleContentsTree selection isNew	ifTrue: [		ruleAdded := module insert: statement before: (newStatementIndex + 1). 		ruleAdded isNil ifTrue: [			^ self ruleAlreadyExists: statement.		].		selectionInModuleContentsTree list refreshRoot.		ignoreCallbacks := true.		selectionInModuleContentsTree selectionIndex: newStatementIndex+2.		newStatementIndex := nil.		selectionInModuleContentsTree list refreshRoot.		ignoreCallbacks := false.	] ifFalse: [		| choice |		choice := Dialog			choose: 'Replace statement?'			labels: (Array with: 'Cancel' with: 'New statement' with: 'Replace statement')			values: #(#cancel #new #replace)			default: #replace.		(choice = #new) ifTrue: [			ruleAdded := module add: statement.			ruleAdded isNil ifTrue: [ self ruleAlreadyExists: statement. ^ self. ].		] ifFalse: [			( choice = #cancel ) ifTrue: [				^ self.			] ifFalse: [				ruleAdded := module replace: (selectionInModuleContentsTree selection target) with: statement.				ruleAdded isNil ifTrue: [ self ruleAlreadyExists: statement ].				newStatementIndex := nil.			].		].			selectionInModuleContentsTree list refreshRoot.		ignoreCallbacks := true.		selectionInModuleContentsTree selectionIndex: (module find: statement)+1.		ignoreCallbacks := false.	].</body>
 
 <body package="Faish-UserInterface" selector="addQueryStringWithoutRunning:">addQueryStringWithoutRunning: queryString	| queryNode |	queryNode := QueryNode 		on: queryString 		module: module		selectionInTreeToUpdate: queryTree.	queryResults addQuery: queryNode.	queryTree list refreshRoot.</body>
 

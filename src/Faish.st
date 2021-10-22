@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <st-source>
-<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 1 October 2021 at 11:16:10 PM</time-stamp>
+<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 22 October 2021 at 10:13:25 PM</time-stamp>
 
 
 <component-created>
@@ -46,6 +46,271 @@
 <comment>
 <class-id>ErrorResult</class-id>
 <body>I pretend to be a FaishStatement to inform the user of the outcome of a failed search.</body>
+</comment>
+
+<class>
+<name>ExceededTime</name>
+<environment>Smalltalk</environment>
+<super>ErrorResult</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars></inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category></category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<class>
+<name>SearchResult</name>
+<environment>Smalltalk</environment>
+<super>Core.Object</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars>type statement </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category></category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>SearchResult</class-id>
+<body>I need rewriting and all code that uses me needs refactoring.noFail and fail are no longer used much. BuiltIns no longer need to return a noFail.The only thing I'm useful for now is to return an error to the user. This can probably be done more effectively by returning a Searchable which is an error node.</body>
+</comment>
+
+<class>
+<name>RecurseError</name>
+<environment>Smalltalk</environment>
+<super>Core.Error</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars></inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category>Faish-Exceptions</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<class>
+<name>Searchable</name>
+<environment>Smalltalk</environment>
+<super>Core.Object</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars>depth module parent derivedFrom depthFirstChild searchType relay threadIdentifier goal hintsSearcher </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category>Faish</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>Searchable</class-id>
+<body>I am something which can be searched by a search algorithm. I represent just one node of a "search tree". I am searched on by a "SearchAlgorithm" subclass.Many search algorithms search for possibilities in a tree. For example, the travelling salesman problem could be thought of as a tree, where every intersection in the "city" is a node, and every direction leading out of that intersection is another branch or child of that node.I form a search tree. At any node (instances of me) in the search tree, you can invoke &gt;&gt;nextChild to return the next child. So, a breadth-first search would invoke &gt;&gt;nextChild on a single node until nil is returned, then start iterating through the children it got from those invocations. A depth-first search would invoke &gt;&gt;nextChild on the first node, then &gt;&gt;nextChild on the returned child, then &gt;&gt;nextChild on that returned child, and so forth until it hits the bottom of the search tree (where nil is returned).derivedFrom - is actually my parent node (as in, the node that made me from &gt;&gt;nextChild) in the search tree.parent - is the node from which my deduction was made. "thus" DeductionSearchables have "parents" which are many ancestors away.exhausted - I can't make any more children.noMoreResults - I, and none of my descendants, will ever return more results, as I am a DeductionSearchable with a failed if-clause.searchType - can be #none (not searched yet or search has gone past this node), #breadthFirst or #depthFirst. This was added to prevent depth-first search backtracking into breadth-first nodes.threadIdentifier - used in (fork:) hints. </body>
+</comment>
+
+<class>
+<name>ImportListSearchable</name>
+<environment>Smalltalk</environment>
+<super>Searchable</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars>currentImportIndex parentPremiseNum state nextImport rootImportIndex rootModule </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category>Faish</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>ImportListSearchable</class-id>
+<body>I return a bunch of ExportUnificationSearchables and UnificationSearchables, one for each module import.I'm made by a DeductionSearchable for each premise of an if-then rule.Import logic works as follows. To find a statement matching a query or premise, the following places are searched: * The current module.* Exported statements from the current module's imports.* The root module.* Exported statements from the root module's imports.* The module I test, if my module is a test module.if-then rules are not imported. If the conclusion of an if-then statement is matched, then the search follows the logic above with the current module being the module containing the if-then statement.The implementation is as follows. An ImportListSearchable will spawn:* A UnificationSearchable for the current module.* An ExportUnificationSearchable for each import of the current module.* A UnificationSearchable for the root module.* An ExportUnificationSearchable for each import of the root module.* A UnificationSearchable for testing my module's test target.So the search tree looks like this:ImportListSearchable	- UnificationSearchables...	- ExportUnificationSearchables, one per module each with		- ImportSimpleSearchers (to find simple matches)			* uses a MatchingGoalModuleSearcher		- ImportIfThenSearchers (to find if-then matches).			* uses a MatchingSimpleModuleSearcherTODO: - Don't always make me. Add a flag to a clause that says whether that clause is exported; if not then just make a UnificationSearchable.</body>
+</comment>
+
+<class>
+<name>FaishStatementComponent</name>
+<environment>Smalltalk</environment>
+<super>Core.Object</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars>baked sid </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category>Faish</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>FaishStatementComponent</class-id>
+<body>I am the abstract superclass of FaishStatement, FaishVariable, FaishAtom.</body>
+</comment>
+
+<class>
+<name>NotImplementedError</name>
+<environment>Smalltalk</environment>
+<super>Core.Error</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars></inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category>Faish-Exceptions</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<class>
+<name>PriorityQueue</name>
+<environment>Smalltalk</environment>
+<super>Core.SortedCollection</super>
+<private>false</private>
+<indexed-type>objects</indexed-type>
+<inst-vars>sizeLimit </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category></category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>PriorityQueue</class-id>
+<body>A priority queue is a collection whereby an insert will put an element in the appropriate sorted position, and a retrieve will retrieve the element at the end of the queue.Effectively, I'm currently just a renamed SortedCollection with a maximum size limit. In the future I could be optimized to use a specilialized data structure.</body>
+</comment>
+
+<class>
+<name>IteratorLiteral</name>
+<environment>Smalltalk</environment>
+<super>Core.Object</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars>next searcher value </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category></category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>IteratorLiteral</class-id>
+<body>I'm used by some built-ins. I'm also a garbage collector's nightmare.I store a Searcher. &gt;&gt;value will return my value. It will return the same value each time.&gt;&gt;next will return another of me which has the next value of the searcher. It will return the same iterator each time.If value is nil, then I'm the last item in this iterator's sequence and &gt;&gt;isLast will return true.</body>
+</comment>
+
+<class>
+<name>ForkSearchable</name>
+<environment>Smalltalk</environment>
+<super>Searchable</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars>forkArray nextIndex </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category></category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>ForkSearchable</class-id>
+<body>A ForkSearchable just makes a copy of its parent. Why? Read on...One of the available execution hints is "fork:", which is given an array. The array can contain anything. The VM then has the optional ability to create a new process/thread for each element in that array.After the fork, hints have the form:hint:(	statement:_	node:_	thread:Thread	relayIn:_	relayOut:_	advice:_ )?Here, Thread is one of the elements in the array. You can use this to differentiate between threads of execution in the same way as using the return value from fork().My children are just copies of my parent but with the threadIdentifier (in my superclass) set to an element of this array.</body>
+</comment>
+
+<class>
+<name>ModuleSearcher</name>
+<environment>Smalltalk</environment>
+<super>Core.Object</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars>index goal position </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category>Faish</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>ModuleSearcher</class-id>
+<body>I am an interator over the Faish memory. I have a goal (a FaishStatement), and I iterate once over the entire memory returning whichever statements match that goal.Usually you'd want one of my subclasses.builtInsSearcher is a special searcher that first searches for built-in statements (n:plus:result: etc). In the future, it will be replaced with something faster, like a flag on premises if they match a built-in.goal is the statement I'm looking for.index is a module or array. It understands &gt;&gt;at: and &gt;&gt;size.position is my current position in the index.(TODO: 'index' is an ambiguous and slightly confusing name. Maybe use 'catalog'?)</body>
+</comment>
+
+<class>
+<name>MatchingModuleSearcher</name>
+<environment>Smalltalk</environment>
+<super>ModuleSearcher</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars></inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category></category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>MatchingModuleSearcher</class-id>
+<body>I find statements that match my goal, or whose conclusion will match my goal.</body>
+</comment>
+
+<class>
+<name>MatchingSimpleModuleSearcher</name>
+<environment>Smalltalk</environment>
+<super>MatchingModuleSearcher</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars></inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category></category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>MatchingSimpleModuleSearcher</class-id>
+<body>See ImportListSearchable comment for an overall picture of where I fit in.I am a MatchingMemorySearcher that does not return if:then: statements.</body>
+</comment>
+
+<class>
+<name>FaishAtom</name>
+<environment>Smalltalk</environment>
+<super>FaishStatementComponent</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars>value </inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category>Faish</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>FaishAtom</class-id>
+<body>A FaishAtom is kind of like a Symbol. It represents a named concept.TODO: these should have contexts of some sort; some atoms will have the same name but different meanings depending on context. Use namespaces of some sort perhaps?</body>
 </comment>
 
 <class>
@@ -96,26 +361,6 @@
 <comment>
 <class-id>BetterHttpClient</class-id>
 <body>The standard HttpClient is fucked up. Exceptions are all over the place and unpresentable to the user. The contents don't even work.</body>
-</comment>
-
-<class>
-<name>Searchable</name>
-<environment>Smalltalk</environment>
-<super>Core.Object</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars>depth module parent derivedFrom depthFirstChild searchType relay threadIdentifier goal hintsSearcher </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category>Faish</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>Searchable</class-id>
-<body>I am something which can be searched by a search algorithm. I represent just one node of a "search tree". I am searched on by a "SearchAlgorithm" subclass.Many search algorithms search for possibilities in a tree. For example, the travelling salesman problem could be thought of as a tree, where every intersection in the "city" is a node, and every direction leading out of that intersection is another branch or child of that node.I form a search tree. At any node (instances of me) in the search tree, you can invoke &gt;&gt;nextChild to return the next child. So, a breadth-first search would invoke &gt;&gt;nextChild on a single node until nil is returned, then start iterating through the children it got from those invocations. A depth-first search would invoke &gt;&gt;nextChild on the first node, then &gt;&gt;nextChild on the returned child, then &gt;&gt;nextChild on that returned child, and so forth until it hits the bottom of the search tree (where nil is returned).derivedFrom - is actually my parent node (as in, the node that made me from &gt;&gt;nextChild) in the search tree.parent - is the node from which my deduction was made. "thus" DeductionSearchables have "parents" which are many ancestors away.exhausted - I can't make any more children.noMoreResults - I, and none of my descendants, will ever return more results, as I am a DeductionSearchable with a failed if-clause.searchType - can be #none (not searched yet or search has gone past this node), #breadthFirst or #depthFirst. This was added to prevent depth-first search backtracking into breadth-first nodes.threadIdentifier - used in (fork:) hints. </body>
 </comment>
 
 <class>
@@ -219,26 +464,6 @@
 </comment>
 
 <class>
-<name>FaishStatementComponent</name>
-<environment>Smalltalk</environment>
-<super>Core.Object</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars>baked sid </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category>Faish</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>FaishStatementComponent</class-id>
-<body>I am the abstract superclass of FaishStatement, FaishVariable, FaishAtom.</body>
-</comment>
-
-<class>
 <name>FaishLiteral</name>
 <environment>Smalltalk</environment>
 <super>FaishStatementComponent</super>
@@ -274,7 +499,7 @@
 </class>
 
 <class>
-<name>FaishModule</name>
+<name>AbstractModule</name>
 <environment>Smalltalk</environment>
 <super>Core.Object</super>
 <private>false</private>
@@ -289,14 +514,14 @@
 </class>
 
 <comment>
-<class-id>FaishModule</class-id>
+<class-id>AbstractModule</class-id>
 <body>I contain a lot of FaishStatements and I can work with them to make conclusions.Almost all of my state can be stored in my statements - for example, my name, my list of imports etc.Imports========I can "import" other modules. That means that the exported contents of those other modules are available to any deduction using me. These other modules are "software dependencies". Normally, these are just instances in the "imports" list. When I am written to a file or network stream, these are referred to by IDs instead of just using object pointers.IDs======IDs and handles are only used for writing modules to streams and locating/reading them again afterwards. If your modules live in, for example, a distributed Smalltalk image, these artifacts are not needed as modules can reference each other using object references.My "UUID" is actually an MD5 digest of my serialized (human readable, VCS tool usable) contents. It is used to make filenames for modules in repositories (so they can be quickly located by ID) and to help with module imports. Modules import specific versions of other modules, and the digest ensures that the other module has not been modified before being imported. The rationale behind this is to put the responsibility of upgrading software dependencies on the programmer rather than the users.When I'm serialized to a file or a stream over the network, my own ID (an MD5 digest) and the IDs of all imports are written out to the file. These are written in what is effectively a header and are excluded from the MD5 calculation for obvious reasons.At initialization, I'm given a random ID. This is a placeholder until I have contents to generate an actual ID from. The actual ID will be generated when &gt;&gt;writeOn: is used. Modules are, however, mutable, and during development of a module, the contents and thus the ID might change. Instead of recalculating the ID (the MD5 digest) of myself, which is an expensive operation, I just set a "modified" flag. If either I am serialized (using &gt;&gt;writeOn:) or something that refers to me is serialized, my ID / MD5 is recalculated. If I have been modified, I might need to be added to a repository if some depender on me is written out.Errors=========Reading a module from a stream should always succeed. If there are errors, they are kept in my "errors" instvar for later resolution.Possible errors include:- Syntax errors.	- Malformed statement	- Mismatched Squl version.	- End of file reached too early or too late.- Trying to add the same statement twice.- Cannot find an import.- Mismatching MD5 digest.- Invalid UTF-8 sequence.- File too largeTODO: Add a nice UI for handling each of these cases.TODO: Optimisation: have two areas: public (exported) and private. UnificationSearchable searches both. ExportUnificationSearchable only searches public.</body>
 </comment>
 
 <class>
-<name>CodeModule</name>
+<name>LegacyModule</name>
 <environment>Smalltalk</environment>
-<super>FaishModule</super>
+<super>AbstractModule</super>
 <private>false</private>
 <indexed-type>none</indexed-type>
 <inst-vars>testModule </inst-vars>
@@ -309,48 +534,8 @@
 </class>
 
 <comment>
-<class-id>CodeModule</class-id>
-<body>I store Squl as manually entered by humans.testModule is a reference to a TestModule which contains tests for me; it is only used for development. Its value is usually nil until a developer asks for the test module. Then I query "metadata:(testModule:X name:Y uri:Z) module:[	me]?" on myself and download whatever the user has just asked for.</body>
-</comment>
-
-<class>
-<name>ModuleSearcher</name>
-<environment>Smalltalk</environment>
-<super>Core.Object</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars>index goal position </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category>Faish</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>ModuleSearcher</class-id>
-<body>I am an interator over the Faish memory. I have a goal (a FaishStatement), and I iterate once over the entire memory returning whichever statements match that goal.Usually you'd want one of my subclasses.builtInsSearcher is a special searcher that first searches for built-in statements (n:plus:result: etc). In the future, it will be replaced with something faster, like a flag on premises if they match a built-in.goal is the statement I'm looking for.index is a module or array. It understands &gt;&gt;at: and &gt;&gt;size.position is my current position in the index.(TODO: 'index' is an ambiguous and slightly confusing name. Maybe use 'catalog'?)</body>
-</comment>
-
-<class>
-<name>MatchingModuleSearcher</name>
-<environment>Smalltalk</environment>
-<super>ModuleSearcher</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars></inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category></category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>MatchingModuleSearcher</class-id>
-<body>I find statements that match my goal, or whose conclusion will match my goal.</body>
+<class-id>LegacyModule</class-id>
+<body>Deprecated. This class is for Faish v0.3 code, which used labels and values e.g. then:( ... )if:( ...).I store Squl as manually entered by humans.testModule is a reference to a TestModule which contains tests for me; it is only used for development. Its value is usually nil until a developer asks for the test module. Then I query "metadata:(testModule:X name:Y uri:Z) module:[	me]?" on myself and download whatever the user has just asked for.</body>
 </comment>
 
 <class>
@@ -369,7 +554,7 @@
 </class>
 
 <class>
-<name>FaishStatement</name>
+<name>LegacyFaishStatement</name>
 <environment>Smalltalk</environment>
 <super>FaishStatementComponent</super>
 <private>false</private>
@@ -384,7 +569,7 @@
 </class>
 
 <comment>
-<class-id>FaishStatement</class-id>
+<class-id>LegacyFaishStatement</class-id>
 <body>I represent a statement. A statement is an unordered collection of label:value pairs. Labels are Symbols. Values can be names of variables, atoms, basic types (integers, strings, etc) or other statements.FaishStatements are immutable. Operations will return a new FaishStatement.TODO: Move parsing stuff out to another class.	- Better idea. Move it into Faish code!hintsAvailable: Whether there are executions hints that would match this statement. Otherwise skip hints. This is ignored for sub-statements that are not if-clauses.importsAvailable: Whether it is worthwhile searching imported modules (i.e. if anything is exported that would match this statement). Otherwise skip searching imports. This is ignored for sub-statements that are not if-clauses.</body>
 </comment>
 
@@ -489,9 +674,9 @@
 </comment>
 
 <class>
-<name>CacheModule</name>
+<name>LegacyCacheModule</name>
 <environment>Smalltalk</environment>
-<super>FaishModule</super>
+<super>LegacyModule</super>
 <private>false</private>
 <indexed-type>none</indexed-type>
 <inst-vars></inst-vars>
@@ -504,8 +689,8 @@
 </class>
 
 <comment>
-<class-id>CacheModule</class-id>
-<body>I am a module that self-limits how many statements I store. Typical uses for me:	- Caches / memoization containers (size limited, discard unused)	- I/O, running instances (size limited, discard old (or unused?))	- Evolution chambres (size limited, discard unused).</body>
+<class-id>LegacyCacheModule</class-id>
+<body>I am a module that self-limits how many statements I store. TODO: I need work. Anything that used me need to be re-written.Typical uses for me:	- Caches / memoization containers (size limited, discard unused)	- I/O, running instances (size limited, discard old (or unused?))	- Evolution chambres (size limited, discard unused).</body>
 </comment>
 
 <class>
@@ -619,9 +804,9 @@
 </class>
 
 <class>
-<name>FaishStatementSignature</name>
+<name>LegacyFaishStatementSignature</name>
 <environment>Smalltalk</environment>
-<super>FaishStatement</super>
+<super>LegacyFaishStatement</super>
 <private>false</private>
 <indexed-type>none</indexed-type>
 <inst-vars></inst-vars>
@@ -634,8 +819,28 @@
 </class>
 
 <comment>
-<class-id>FaishStatementSignature</class-id>
+<class-id>LegacyFaishStatementSignature</class-id>
 <body>I'm a statement signature. For example, the statement (a:b c:(d:e) ) has a signature of (a:~ c:~). The value of the second argument has the signature (d:~).I am a list of clauses, each clause having a lable. You'll notice that I'm just a subclass of FaishStatement. In a real implementation, each statement would have a link to it's signature and the values of its arguments.</body>
+</comment>
+
+<class>
+<name>CodeModule</name>
+<environment>Smalltalk</environment>
+<super>AbstractModule</super>
+<private>false</private>
+<indexed-type>none</indexed-type>
+<inst-vars></inst-vars>
+<class-inst-vars></class-inst-vars>
+<imports></imports>
+<category></category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</class>
+
+<comment>
+<class-id>CodeModule</class-id>
+<body>I'm a general purpose Faish module. I store code.I'm the module you get when you use the built-ins in Squl to make a module.</body>
 </comment>
 
 <class>
@@ -676,191 +881,6 @@
 <comment>
 <class-id>DoNotFailSearchable</class-id>
 <body>I am made as a search result when a BuiltIn fails because it had too many variables in it.If a built-in 'fails' because there were too many variables, then it would cause a parent DeductionSearchable to fail completely because one of its children has failed. If the children were implemented in a different order, then a result might have been found instead.This is the solution, albeit a bit hacky. I return myself as a nextChild forming an infinite tree branch. It should never be explored more than one step in because &gt;&gt;isWorthExploringPastDepth: will always return false.</body>
-</comment>
-
-<class>
-<name>ExceededTime</name>
-<environment>Smalltalk</environment>
-<super>ErrorResult</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars></inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category></category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<class>
-<name>SearchResult</name>
-<environment>Smalltalk</environment>
-<super>Core.Object</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars>type statement </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category></category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>SearchResult</class-id>
-<body>I need rewriting and all code that uses me needs refactoring.noFail and fail are no longer used much. BuiltIns no longer need to return a noFail.The only thing I'm useful for now is to return an error to the user. This can probably be done more effectively by returning a Searchable which is an error node.</body>
-</comment>
-
-<class>
-<name>RecurseError</name>
-<environment>Smalltalk</environment>
-<super>Core.Error</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars></inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category>Faish-Exceptions</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<class>
-<name>ImportListSearchable</name>
-<environment>Smalltalk</environment>
-<super>Searchable</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars>currentImportIndex parentPremiseNum state nextImport rootImportIndex rootModule </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category>Faish</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>ImportListSearchable</class-id>
-<body>I return a bunch of ExportUnificationSearchables and UnificationSearchables, one for each module import.I'm made by a DeductionSearchable for each premise of an if-then rule.Import logic works as follows. To find a statement matching a query or premise, the following places are searched: * The current module.* Exported statements from the current module's imports.* The root module.* Exported statements from the root module's imports.* The module I test, if my module is a test module.if-then rules are not imported. If the conclusion of an if-then statement is matched, then the search follows the logic above with the current module being the module containing the if-then statement.The implementation is as follows. An ImportListSearchable will spawn:* A UnificationSearchable for the current module.* An ExportUnificationSearchable for each import of the current module.* A UnificationSearchable for the root module.* An ExportUnificationSearchable for each import of the root module.* A UnificationSearchable for testing my module's test target.So the search tree looks like this:ImportListSearchable	- UnificationSearchables...	- ExportUnificationSearchables, one per module each with		- ImportSimpleSearchers (to find simple matches)			* uses a MatchingGoalModuleSearcher		- ImportIfThenSearchers (to find if-then matches).			* uses a MatchingSimpleModuleSearcherTODO: - Don't always make me. Add a flag to a clause that says whether that clause is exported; if not then just make a UnificationSearchable.</body>
-</comment>
-
-<class>
-<name>NotImplementedError</name>
-<environment>Smalltalk</environment>
-<super>Core.Error</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars></inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category>Faish-Exceptions</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<class>
-<name>PriorityQueue</name>
-<environment>Smalltalk</environment>
-<super>Core.SortedCollection</super>
-<private>false</private>
-<indexed-type>objects</indexed-type>
-<inst-vars>sizeLimit </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category></category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>PriorityQueue</class-id>
-<body>A priority queue is a collection whereby an insert will put an element in the appropriate sorted position, and a retrieve will retrieve the element at the end of the queue.Effectively, I'm currently just a renamed SortedCollection with a maximum size limit. In the future I could be optimized to use a specilialized data structure.</body>
-</comment>
-
-<class>
-<name>IteratorLiteral</name>
-<environment>Smalltalk</environment>
-<super>Core.Object</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars>next searcher value </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category></category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>IteratorLiteral</class-id>
-<body>I'm used by some built-ins. I'm also a garbage collector's nightmare.I store a Searcher. &gt;&gt;value will return my value. It will return the same value each time.&gt;&gt;next will return another of me which has the next value of the searcher. It will return the same iterator each time.If value is nil, then I'm the last item in this iterator's sequence and &gt;&gt;isLast will return true.</body>
-</comment>
-
-<class>
-<name>ForkSearchable</name>
-<environment>Smalltalk</environment>
-<super>Searchable</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars>forkArray nextIndex </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category></category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>ForkSearchable</class-id>
-<body>A ForkSearchable just makes a copy of its parent. Why? Read on...One of the available execution hints is "fork:", which is given an array. The array can contain anything. The VM then has the optional ability to create a new process/thread for each element in that array.After the fork, hints have the form:hint:(	statement:_	node:_	thread:Thread	relayIn:_	relayOut:_	advice:_ )?Here, Thread is one of the elements in the array. You can use this to differentiate between threads of execution in the same way as using the return value from fork().My children are just copies of my parent but with the threadIdentifier (in my superclass) set to an element of this array.</body>
-</comment>
-
-<class>
-<name>MatchingSimpleModuleSearcher</name>
-<environment>Smalltalk</environment>
-<super>MatchingModuleSearcher</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars></inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category></category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>MatchingSimpleModuleSearcher</class-id>
-<body>See ImportListSearchable comment for an overall picture of where I fit in.I am a MatchingMemorySearcher that does not return if:then: statements.</body>
-</comment>
-
-<class>
-<name>FaishAtom</name>
-<environment>Smalltalk</environment>
-<super>FaishStatementComponent</super>
-<private>false</private>
-<indexed-type>none</indexed-type>
-<inst-vars>value </inst-vars>
-<class-inst-vars></class-inst-vars>
-<imports></imports>
-<category>Faish</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</class>
-
-<comment>
-<class-id>FaishAtom</class-id>
-<body>A FaishAtom is kind of like a Symbol. It represents a named concept.TODO: these should have contexts of some sort; some atoms will have the same name but different meanings depending on context. Use namespaces of some sort perhaps?</body>
 </comment>
 
 <shared-variable>
@@ -915,31 +935,6 @@
 
 
 <shared-variable>
-<name>BasicLiteralTypes</name>
-<environment>FaishStatement</environment>
-<private>false</private>
-<constant>false</constant>
-<category>As yet unclassified</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</shared-variable>
-
-
-<shared-variable>
-<name>readValueCase</name>
-<environment>FaishStatement</environment>
-<private>false</private>
-<constant>false</constant>
-<category>As yet unclassified</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</shared-variable>
-
-
-
-<shared-variable>
 <name>Fail</name>
 <environment>SearchResult</environment>
 <private>false</private>
@@ -965,8 +960,21 @@
 
 
 <shared-variable>
+<name>Instance</name>
+<environment>ExceededSteps</environment>
+<private>false</private>
+<constant>false</constant>
+<category>As yet unclassified</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</shared-variable>
+
+
+
+<shared-variable>
 <name>StatementExport</name>
-<environment>FaishModule</environment>
+<environment>AbstractModule</environment>
 <private>false</private>
 <constant>false</constant>
 <category>As yet unclassified</category>
@@ -978,7 +986,7 @@
 
 <shared-variable>
 <name>StatementImport</name>
-<environment>FaishModule</environment>
+<environment>AbstractModule</environment>
 <private>false</private>
 <constant>false</constant>
 <category>As yet unclassified</category>
@@ -990,20 +998,7 @@
 
 <shared-variable>
 <name>StatementModuleName</name>
-<environment>FaishModule</environment>
-<private>false</private>
-<constant>false</constant>
-<category>As yet unclassified</category>
-<attributes>
-<package>Faish</package>
-</attributes>
-</shared-variable>
-
-
-
-<shared-variable>
-<name>Instance</name>
-<environment>ExceededSteps</environment>
+<environment>AbstractModule</environment>
 <private>false</private>
 <constant>false</constant>
 <category>As yet unclassified</category>
@@ -1028,6 +1023,31 @@
 
 
 <shared-variable>
+<name>BasicLiteralTypes</name>
+<environment>LegacyFaishStatement</environment>
+<private>false</private>
+<constant>false</constant>
+<category>As yet unclassified</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</shared-variable>
+
+
+<shared-variable>
+<name>readValueCase</name>
+<environment>LegacyFaishStatement</environment>
+<private>false</private>
+<constant>false</constant>
+<category>As yet unclassified</category>
+<attributes>
+<package>Faish</package>
+</attributes>
+</shared-variable>
+
+
+
+<shared-variable>
 <name>Instance</name>
 <environment>ExceededDepth</environment>
 <private>false</private>
@@ -1038,6 +1058,98 @@
 </attributes>
 </shared-variable>
 
+
+
+<methods>
+<class-id>ErrorResult</class-id> <category>initialize-release</category>
+
+<body package="Faish" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	" *** Replace this comment with the appropriate initialization code *** "	^self</body>
+</methods>
+
+<methods>
+<class-id>ErrorResult</class-id> <category>printing</category>
+
+<body package="Faish" selector="printDebugOn:limit:">printDebugOn: str limit: n	^ self printOn: str.</body>
+
+<body package="Faish" selector="printOn:">printOn: str 	self subclassResponsibility.</body>
+
+<body package="Faish" selector="editString">editString	^ self printString.</body>
+</methods>
+
+<methods>
+<class-id>ErrorResult</class-id> <category>testing</category>
+
+<body package="Faish" selector="isStatement">isStatement	^ false.</body>
+</methods>
+
+<methods>
+<class-id>ErrorResult</class-id> <category>pretending to be a statement</category>
+
+<body package="Faish" selector="usefulness">usefulness 	^ 0.</body>
+
+<body package="Faish" selector="statement">statement 	^ nil</body>
+
+<body package="Faish" selector="bake">bake</body>
+</methods>
+
+
+<methods>
+<class-id>ExceededTime</class-id> <category>printing</category>
+
+<body package="Faish" selector="printOn:">printOn: str 	str nextPutAll: 'Time exceeded or search halted by user.'.</body>
+</methods>
+
+
+<methods>
+<class-id>SearchResult class</class-id> <category>class initialization</category>
+
+<body package="Faish" selector="initialize">initialize	Fail := self new statement: nil; type: #fail.	NoFail := self new statement: nil; type: #noFail.</body>
+</methods>
+
+<methods>
+<class-id>SearchResult class</class-id> <category>instance creation</category>
+
+<body package="Faish" selector="errorResult:">errorResult: r	^ self new 		type: #error;		statement: r.</body>
+
+<body package="Faish" selector="result:">result: r	^ self new 		type: #result;		statement: r.</body>
+
+<body package="Faish" selector="new">new	"Answer a newly created and initialized instance."	^super new initialize</body>
+
+<body package="Faish" selector="fail">fail	Fail isNil ifTrue: [ self initialize ].	^ Fail.</body>
+
+<body package="Faish" selector="noFail">noFail	NoFail isNil ifTrue: [ self initialize ].	^ NoFail.</body>
+</methods>
+
+
+<methods>
+<class-id>SearchResult</class-id> <category>accessing</category>
+
+<body package="Faish" selector="statement:">statement: s	statement := s.</body>
+
+<body package="Faish" selector="isResult">isResult	^ (statement isNil not and: [ type ~= #error ]) and: [ statement isVariable not ].</body>
+
+<body package="Faish" selector="statement">statement	^ statement.</body>
+
+<body package="Faish" selector="type">type	^type</body>
+
+<body package="Faish" selector="isNoFail">isNoFail	^ type = #noFail.</body>
+
+<body package="Faish" selector="type:">type: aSymbol	" Can be:		#fail -&gt; statement is nil, no results will ever be found.		#noFail -&gt; statement is nil, but results could be found had there been more populated variables (used by builtins).		#error -&gt; An error to show on the screen instead of a result. 		#result -&gt; there is a result! "	type := aSymbol.</body>
+
+<body package="Faish" selector="isFail">isFail	^ type = #fail.</body>
+</methods>
+
+<methods>
+<class-id>SearchResult</class-id> <category>testing</category>
+
+<body package="Faish" selector="isError">isError	^ type = #error.</body>
+</methods>
+
+<methods>
+<class-id>SearchResult</class-id> <category>initialize-release</category>
+
+<body package="Faish" selector="initialize">initialize	super initialize.	type := nil.	statement := nil.	^self</body>
+</methods>
 
 
 <methods>
@@ -1583,39 +1695,6 @@
 
 
 <methods>
-<class-id>ErrorResult</class-id> <category>initialize-release</category>
-
-<body package="Faish" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	" *** Replace this comment with the appropriate initialization code *** "	^self</body>
-</methods>
-
-<methods>
-<class-id>ErrorResult</class-id> <category>printing</category>
-
-<body package="Faish" selector="printDebugOn:limit:">printDebugOn: str limit: n	^ self printOn: str.</body>
-
-<body package="Faish" selector="printOn:">printOn: str 	self subclassResponsibility.</body>
-
-<body package="Faish" selector="editString">editString	^ self printString.</body>
-</methods>
-
-<methods>
-<class-id>ErrorResult</class-id> <category>testing</category>
-
-<body package="Faish" selector="isStatement">isStatement	^ false.</body>
-</methods>
-
-<methods>
-<class-id>ErrorResult</class-id> <category>pretending to be a statement</category>
-
-<body package="Faish" selector="usefulness">usefulness 	^ 0.</body>
-
-<body package="Faish" selector="statement">statement 	^ nil</body>
-
-<body package="Faish" selector="bake">bake</body>
-</methods>
-
-
-<methods>
 <class-id>ExceededSteps class</class-id> <category>instance creation</category>
 
 <body package="Faish" selector="instance">instance	(Instance isNil) ifTrue: [ Instance := self new ].	^ Instance.</body>
@@ -1809,7 +1888,7 @@
 <methods>
 <class-id>BuiltInsSearchable class</class-id> <category>class initialization</category>
 
-<body package="Faish" selector="initialize">initialize	" This is the canonical list of built-ins. BuiltInsSearcher initialize. "	| s m |	NextId := 1.	" Idea: this could be better implemented using a special module. "	" TODO: somehow allow for plugins??? "	StatementsBuiltIn := Dictionary new.	s := StatementsBuiltIn.	m := FaishModule new. "Only used for parsing. "	" Integers "	s at: (m parse: 'n:X plus:Y result:Z.')	   put: [ :handler :statement | handler builtinAddToSum: statement ].	s at: (m parse: 'n:X multiply:Y result:Z.')	   put: [ :handler :statement | handler builtinMultiply: statement ].	s at: (m parse: 'n:X divide:Y result:Z.')	   put: [ :handler :statement | handler builtinDivide: statement ].	s at: (m parse: 'n:X modulo:Y result:Z.')	   put: [ :handler :statement | handler builtinModulo: statement ].	s at: (m parse: 'n:X raisedTo:Y result:Z.')	   put: [ :handler :statement | handler builtinRaisedTo: statement ].	s at: (m parse: 'n:X abs:Z.')	   put: [ :handler :statement | handler builtinAbs: statement ].	s at: (m parse: 'n:X bitAt:Y result:Z.')	   put: [ :handler :statement | handler builtinBitAt: statement ].	s at: (m parse: 'n:X bitAnd:Y result:Z.')	   put: [ :handler :statement | handler builtinBitAnd: statement ].	s at: (m parse: 'n:X bitOr:Y result:Z.')	   put: [ :handler :statement | handler builtinBitOr: statement ].	s at: (m parse: 'bitNot:Y result:Z.')	   put: [ :handler :statement | handler builtinBitNot: statement ].	s at: (m parse: 'n:X bitShift:Y result:Z.')	   put: [ :handler :statement | handler builtinBitShift: statement ].	s at: (m parse: 'n:X bitXor:Y result:Z.')	   put: [ :handler :statement | handler builtinBitXor: statement ].	" Comparisons "	s at: (m parse: 'lesser:X greater:Y.')	   put: [ :handler :statement | handler builtinLesserGreater: statement ].	" Arrays, also used for Strings "	s at: (m parse: 'create:array size:N result:R.')	   put: [ :handler :statement | handler builtinCreateArray: statement ].		s at: (m parse: 'create:uint8Array size:N result:R.')	   put: [ :handler :statement | handler builtinCreateUInt8Array: statement ].	s at: (m parse: 'create:float32Array size:N result:R.')	   put: [ :handler :statement | handler builtinCreateFloat32Array: statement ].	"(also uint16, uint32, uint64, int8, int16, int32, int64, float32, float64, float128, statement(?) ). I've only made two basic ones so that things can be tested."		s at: (m parse: 'array:A index:I value:E.')	   put: [ :handler :statement | handler builtinArrayAtIndex: statement ].	s at: (m parse: 'array:A index:I insert:E result:R.')	   put: [ :handler :statement | handler builtinArrayInsert: statement ].	s at: (m parse: 'array:A index:I insertArray:Paste result:R.')	   put: [ :handler :statement | handler builtinArrayInsertArray: statement ].	s at: (m parse: 'array:A fromIndex:I toIndex:T result:R.')	   put: [ :handler :statement | handler builtinArrayCopy: statement ].	s at: (m parse: 'array:A size:S.')	   put: [ :handler :statement | handler builtinArraySize: statement ].	" Array iteration can be implemented in Squl code. "	" Module queries "	s at: (m parse: 'thisModule:ThisModule.')	   put: [ :handler :statement | handler builtinModuleThis: statement ].	s at: (m parse: 'module:Module query:Query numResults:N depthLimit:Depth.')	   put: [ :handler :statement | handler builtinModuleNumResultsDepthLimit: statement ].	s at: (m parse: 'module:Module query:Query numResults:N stepLimit:Steps.')	   put: [ :handler :statement | handler builtinModuleNumResultsStepLimit: statement ].	s at: (m parse: 'module:Module query:Query numResults:N timeLimit:Seconds.')	   put: [ :handler :statement | handler builtinModuleNumResultsTimeLimit: statement ].	" Fetching results doesn't need limits because fetches can be lazy, meaning existing query limits can be used. "	s at: (m parse: 'module:Module query:Query iterator:Iterator.')	   put: [ :handler :statement | handler builtinModuleQuery: statement ].	s at: (m parse: 'iterator:Iterator value:Value next:AnotherIterator.')	   put: [ :handler :statement | handler builtinIteratorNext: statement ].	s at: (m parse: 'iteratorIsExhausted:Iterator.')	   put: [ :handler :statement | handler builtinIteratorExhausted: statement ].	" Simple queries; these don't need limits. "	s at: (m parse: 'module:Module simpleQuery:Query numResults:N.')	   put: [ :handler :statement | handler builtinModuleSimpleNumResults: statement ].	s at: (m parse: 'module:Module simpleQueryUnified:Query iterator:Iterator.')	   put: [ :handler :statement | handler builtinModuleSimpleQuery: statement ].	s at: (m parse: 'module:Module simpleQueryUnunified:Query iterator:Iterator.')	   put: [ :handler :statement | handler builtinModuleSimpleQueryUnunified: statement ].	s at: (m parse: 'noResults:Q.')	   put: [ :handler :statement | handler builtinNoResults: statement ].	" Equality can br easily implemented as (equal:X with:X), but inequality is less simple. Thus: "	s at: (m parse: 'notEqual:X with:Y.')	   put: [ :handler :statement | handler builtinNotEqual: statement ].	" Module lifecycle, accessing "	s at: (m parse: 'create:module result:New.')	   put: [ :handler :statement | handler builtinModuleCreate: statement ].	s at: (m parse: 'module:Module add:Statement result:R.')	   put: [ :handler :statement | handler builtinModuleAdd: statement ].	" TODO: think about whether this should be the opposite of add: "	s at: (m parse: 'module:Module remove:Statement result:R.')	   put: [ :handler :statement | handler builtinModuleAdd: statement ].	" TODO 	s at: (m parse: 'module:Module union:Another result:R.')	   put: [ :handler :statement | handler builtinModuleUnion: statement ].	s at: (m parse: 'module:Module intersection:Another result:R.')	   put: [ :handler :statement | handler builtinModuleIntersection: statement ]."	s at: (m parse: 'module:Module size:S.')	   put: [ :handler :statement | handler builtinModuleSize: statement ].	" Statement lifecycle, accessing. "	" Creating a statement does not add it to the module. "	" Statements are instances of their definitions. Definitions are just unique identifiers with an arity. Any human-readable version of that statement is kept in an adjacent source module. "	s at: (m parse: 'create:statementSignature module:Module arity:Arity result:New.')	   put: [ :handler :statement | handler builtinStatementSignatureCreate: statement ].	s at: (m parse: 'create:statement fromSignature:Signature module:Module result:New.')	   put: [ :handler :statement | handler builtinStatementCreate: statement ].	s at: (m parse: 'statement:S signature:Si.')	   put: [ :handler :statement | handler builtinStatementGetSignature: statement ].	s at: (m parse: 'statement:S arity:Size.')	   put: [ :handler :statement | handler builtinStatementSize: statement ].	s at: (m parse: 'statement:S index:I value:V.')	   put: [ :handler :statement | handler builtinStatementGetValue: statement ].	s at: (m parse: 'statement:S index:I value:V result:Result.')	   put: [ :handler :statement | handler builtinStatementSetValue: statement ].	" Basic type checking "	s at: (m parse: 'atom:X.')	   put: [ :handler :statement | handler builtinIsAtom: statement ].	s at: (m parse: 'statement:X.')	   put: [ :handler :statement | handler builtinIsStatement: statement ].	s at: (m parse: 'statementSignature:X.')	   put: [ :handler :statement | handler builtinIsStatementSignature: statement ].	s at: (m parse: 'variable:X.')	   put: [ :handler :statement | handler builtinIsVariable: statement ].	s at: (m parse: 'integer:X.')	   put: [ :handler :statement | handler builtinIsInteger: statement ]. 	s at: (m parse: 'float32:X.')	   put: [ :handler :statement | handler builtinIsFloat: statement ]. 	s at: (m parse: 'array:X.')	   put: [ :handler :statement | handler builtinIsArray: statement ]. 	s at: (m parse: 'uint8Array:X.')	   put: [ :handler :statement | handler builtinIsArray: statement ]. 	s at: (m parse: 'float32Array:X.')	   put: [ :handler :statement | handler builtinIsArray: statement ]. 	" String is not here, because I plan that strings are implemented using arrays. "	s at: (m parse: 'module:X.') "TODO - module:X? "	   put: [ :handler :statement | handler builtinIsModuleLiteral: statement ].	" Creating things "	s at: (m parse: 'create:atom result:X.')	   put: [ :handler :statement | handler builtinCreateAtom: statement ].	s at: (m parse: 'create:variable result:X.')	   put: [ :handler :statement | handler builtinCreateVariable: statement ].</body>
+<body package="Faish" selector="initialize">initialize	" This is the canonical list of built-ins. BuiltInsSearcher initialize. "	| s m |	NextId := 1.	" Idea: this could be better implemented using a special module. "	" TODO: somehow allow for plugins??? "	StatementsBuiltIn := Dictionary new.	s := StatementsBuiltIn.	m := AbstractModule new. "Only used for parsing. "	" Integers "	s at: (m parse: 'n:X plus:Y result:Z.')	   put: [ :handler :statement | handler builtinAddToSum: statement ].	s at: (m parse: 'n:X multiply:Y result:Z.')	   put: [ :handler :statement | handler builtinMultiply: statement ].	s at: (m parse: 'n:X divide:Y result:Z.')	   put: [ :handler :statement | handler builtinDivide: statement ].	s at: (m parse: 'n:X modulo:Y result:Z.')	   put: [ :handler :statement | handler builtinModulo: statement ].	s at: (m parse: 'n:X raisedTo:Y result:Z.')	   put: [ :handler :statement | handler builtinRaisedTo: statement ].	s at: (m parse: 'n:X abs:Z.')	   put: [ :handler :statement | handler builtinAbs: statement ].	s at: (m parse: 'n:X bitAt:Y result:Z.')	   put: [ :handler :statement | handler builtinBitAt: statement ].	s at: (m parse: 'n:X bitAnd:Y result:Z.')	   put: [ :handler :statement | handler builtinBitAnd: statement ].	s at: (m parse: 'n:X bitOr:Y result:Z.')	   put: [ :handler :statement | handler builtinBitOr: statement ].	s at: (m parse: 'bitNot:Y result:Z.')	   put: [ :handler :statement | handler builtinBitNot: statement ].	s at: (m parse: 'n:X bitShift:Y result:Z.')	   put: [ :handler :statement | handler builtinBitShift: statement ].	s at: (m parse: 'n:X bitXor:Y result:Z.')	   put: [ :handler :statement | handler builtinBitXor: statement ].	" Comparisons "	s at: (m parse: 'lesser:X greater:Y.')	   put: [ :handler :statement | handler builtinLesserGreater: statement ].	" Arrays, also used for Strings "	s at: (m parse: 'create:array size:N result:R.')	   put: [ :handler :statement | handler builtinCreateArray: statement ].		s at: (m parse: 'create:uint8Array size:N result:R.')	   put: [ :handler :statement | handler builtinCreateUInt8Array: statement ].	s at: (m parse: 'create:float32Array size:N result:R.')	   put: [ :handler :statement | handler builtinCreateFloat32Array: statement ].	"(also uint16, uint32, uint64, int8, int16, int32, int64, float32, float64, float128, statement(?) ). I've only made two basic ones so that things can be tested."		s at: (m parse: 'array:A index:I value:E.')	   put: [ :handler :statement | handler builtinArrayAtIndex: statement ].	s at: (m parse: 'array:A index:I insert:E result:R.')	   put: [ :handler :statement | handler builtinArrayInsert: statement ].	s at: (m parse: 'array:A index:I insertArray:Paste result:R.')	   put: [ :handler :statement | handler builtinArrayInsertArray: statement ].	s at: (m parse: 'array:A fromIndex:I toIndex:T result:R.')	   put: [ :handler :statement | handler builtinArrayCopy: statement ].	s at: (m parse: 'array:A size:S.')	   put: [ :handler :statement | handler builtinArraySize: statement ].	" Array iteration can be implemented in Squl code. "	" Module queries "	s at: (m parse: 'thisModule:ThisModule.')	   put: [ :handler :statement | handler builtinModuleThis: statement ].	s at: (m parse: 'module:Module query:Query numResults:N depthLimit:Depth.')	   put: [ :handler :statement | handler builtinModuleNumResultsDepthLimit: statement ].	s at: (m parse: 'module:Module query:Query numResults:N stepLimit:Steps.')	   put: [ :handler :statement | handler builtinModuleNumResultsStepLimit: statement ].	s at: (m parse: 'module:Module query:Query numResults:N timeLimit:Seconds.')	   put: [ :handler :statement | handler builtinModuleNumResultsTimeLimit: statement ].	" Fetching results doesn't need limits because fetches can be lazy, meaning existing query limits can be used. "	s at: (m parse: 'module:Module query:Query iterator:Iterator.')	   put: [ :handler :statement | handler builtinModuleQuery: statement ].	s at: (m parse: 'iterator:Iterator value:Value next:AnotherIterator.')	   put: [ :handler :statement | handler builtinIteratorNext: statement ].	s at: (m parse: 'iteratorIsExhausted:Iterator.')	   put: [ :handler :statement | handler builtinIteratorExhausted: statement ].	" Simple queries; these don't need limits. "	s at: (m parse: 'module:Module simpleQuery:Query numResults:N.')	   put: [ :handler :statement | handler builtinModuleSimpleNumResults: statement ].	s at: (m parse: 'module:Module simpleQueryUnified:Query iterator:Iterator.')	   put: [ :handler :statement | handler builtinModuleSimpleQuery: statement ].	s at: (m parse: 'module:Module simpleQueryUnunified:Query iterator:Iterator.')	   put: [ :handler :statement | handler builtinModuleSimpleQueryUnunified: statement ].	s at: (m parse: 'noResults:Q.')	   put: [ :handler :statement | handler builtinNoResults: statement ].	" Equality can br easily implemented as (equal:X with:X), but inequality is less simple. Thus: "	s at: (m parse: 'notEqual:X with:Y.')	   put: [ :handler :statement | handler builtinNotEqual: statement ].	" Module lifecycle, accessing "	s at: (m parse: 'create:module result:New.')	   put: [ :handler :statement | handler builtinModuleCreate: statement ].	s at: (m parse: 'module:Module add:Statement result:R.')	   put: [ :handler :statement | handler builtinModuleAdd: statement ].	" TODO: think about whether this should be the opposite of add: "	s at: (m parse: 'module:Module remove:Statement result:R.')	   put: [ :handler :statement | handler builtinModuleAdd: statement ].	" TODO 	s at: (m parse: 'module:Module union:Another result:R.')	   put: [ :handler :statement | handler builtinModuleUnion: statement ].	s at: (m parse: 'module:Module intersection:Another result:R.')	   put: [ :handler :statement | handler builtinModuleIntersection: statement ]."	s at: (m parse: 'module:Module size:S.')	   put: [ :handler :statement | handler builtinModuleSize: statement ].	" Statement lifecycle, accessing. "	" Creating a statement does not add it to the module. "	" Statements are instances of their definitions. Definitions are just unique identifiers with an arity. Any human-readable version of that statement is kept in an adjacent source module. "	s at: (m parse: 'create:statementSignature module:Module arity:Arity result:New.')	   put: [ :handler :statement | handler builtinStatementSignatureCreate: statement ].	s at: (m parse: 'create:statement fromSignature:Signature module:Module result:New.')	   put: [ :handler :statement | handler builtinStatementCreate: statement ].	s at: (m parse: 'statement:S signature:Si.')	   put: [ :handler :statement | handler builtinStatementGetSignature: statement ].	s at: (m parse: 'statement:S arity:Size.')	   put: [ :handler :statement | handler builtinStatementSize: statement ].	s at: (m parse: 'statement:S index:I value:V.')	   put: [ :handler :statement | handler builtinStatementGetValue: statement ].	s at: (m parse: 'statement:S index:I value:V result:Result.')	   put: [ :handler :statement | handler builtinStatementSetValue: statement ].	" Basic type checking "	s at: (m parse: 'atom:X.')	   put: [ :handler :statement | handler builtinIsAtom: statement ].	s at: (m parse: 'statement:X.')	   put: [ :handler :statement | handler builtinIsStatement: statement ].	s at: (m parse: 'statementSignature:X.')	   put: [ :handler :statement | handler builtinIsStatementSignature: statement ].	s at: (m parse: 'variable:X.')	   put: [ :handler :statement | handler builtinIsVariable: statement ].	s at: (m parse: 'integer:X.')	   put: [ :handler :statement | handler builtinIsInteger: statement ]. 	s at: (m parse: 'float32:X.')	   put: [ :handler :statement | handler builtinIsFloat: statement ]. 	s at: (m parse: 'array:X.')	   put: [ :handler :statement | handler builtinIsArray: statement ]. 	s at: (m parse: 'uint8Array:X.')	   put: [ :handler :statement | handler builtinIsArray: statement ]. 	s at: (m parse: 'float32Array:X.')	   put: [ :handler :statement | handler builtinIsArray: statement ]. 	" String is not here, because I plan that strings are implemented using arrays. "	s at: (m parse: 'module:X.') "TODO - module:X? "	   put: [ :handler :statement | handler builtinIsModuleLiteral: statement ].	" Creating things "	s at: (m parse: 'create:atom result:X.')	   put: [ :handler :statement | handler builtinCreateAtom: statement ].	s at: (m parse: 'create:variable result:X.')	   put: [ :handler :statement | handler builtinCreateVariable: statement ].</body>
 </methods>
 
 <methods>
@@ -1934,7 +2013,7 @@
 <methods>
 <class-id>BuiltInsSearchable</class-id> <category>built-ins modules</category>
 
-<body package="Faish" selector="builtinStatementSignatureCreate:">builtinStatementSignatureCreate:statement	"create:statementSignature module:M arity:A result:Si."	| m a si result nothing newsig |	m := statement at: #module.	a := statement at:#arity.	si := statement at: #result.	a isVariable ifTrue: [ ^ SearchResult noFail ].	m isVariable ifTrue: [ ^ SearchResult noFail ].	si isVariable ifFalse: [ ^ SearchResult fail ].	a isInteger ifFalse: [ ^ SearchResult fail ].	m isModuleLiteral ifFalse: [ ^ SearchResult fail ].	(a value &lt; 0) ifTrue: [ ^ SearchResult fail ].	(a value = 0 ) ifTrue: [ 		newsig := FaishAtom new value: (self class nextId).		result := statement copy.		result at: #result put: newsig.			^ SearchResult result: result.	].	newsig := FaishStatementSignature new.	nothing := FaishAtom from: 'nothing'.	1 to: a value do: [ :i | 		newsig addLabel:(self class nextId) value:nothing.	].	result := statement copy.	" It needs to be a literal. Otherwise all sorts of nasty funky stuff could happen, and the debugger has a spaz."	result at: #result put: (FaishLiteral new value: newsig).	^ SearchResult result: result</body>
+<body package="Faish" selector="builtinStatementSignatureCreate:">builtinStatementSignatureCreate:statement	"create:statementSignature module:M arity:A result:Si."	| m a si result nothing newsig |	m := statement at: #module.	a := statement at:#arity.	si := statement at: #result.	a isVariable ifTrue: [ ^ SearchResult noFail ].	m isVariable ifTrue: [ ^ SearchResult noFail ].	si isVariable ifFalse: [ ^ SearchResult fail ].	a isInteger ifFalse: [ ^ SearchResult fail ].	m isModuleLiteral ifFalse: [ ^ SearchResult fail ].	(a value &lt; 0) ifTrue: [ ^ SearchResult fail ].	(a value = 0 ) ifTrue: [ 		newsig := FaishAtom new value: (self class nextId).		result := statement copy.		result at: #result put: newsig.			^ SearchResult result: result.	].	newsig := LegacyFaishStatementSignature new.	nothing := FaishAtom from: 'nothing'.	1 to: a value do: [ :i | 		newsig addLabel:(self class nextId) value:nothing.	].	result := statement copy.	" It needs to be a literal. Otherwise all sorts of nasty funky stuff could happen, and the debugger has a spaz."	result at: #result put: (FaishLiteral new value: newsig).	^ SearchResult result: result</body>
 
 <body package="Faish" selector="builtinIteratorNext:">builtinIteratorNext:statement	"iterator:Iterator value:Value next:AnotherIterator."	| prev value next nextIterator result |	prev := statement atIndex: 1.	value := statement atIndex: 2.	next := statement atIndex: 3.	prev isVariable ifTrue: [ ^ SearchResult noFail ].	prev isIteratorLiteral ifFalse: [ ^ SearchResult fail ].	prev value isLast ifTrue: [ ^ SearchResult fail ].	(value isVariable) ifFalse: [		( value matches: prev value value ) ifFalse: [ ^ SearchResult fail ].	].	(next isVariable) ifFalse: [		" Untested code. "		( next value = prev value next) ifFalse: [			^ SearchResult fail.		]	].		prev value value isNil ifTrue: [ ^ SearchResult fail ].	result := statement copy.	" We need to bind the variables to make sure we actually return a result. "	result atIndex: 2 put: (prev value value).	nextIterator := prev value next.	result atIndex: 3 put: (FaishLiteral value: nextIterator ).	^ SearchResult result: result.</body>
 
@@ -1948,7 +2027,7 @@
 
 <body package="Faish" selector="builtinModuleNumResultsDepthLimit:">builtinModuleNumResultsDepthLimit: statement	"module:M query:Q numResults:N depthLimit:D "	| m query numResultsVar numResults searchDepthLiteral searchDepth result |	m := statement atIndex: 1.	query := statement atIndex: 2.	numResultsVar := statement atIndex: 3.	searchDepthLiteral := statement atIndex: 4.		m isVariable ifTrue: [ ^ SearchResult noFail ].	query isVariable ifTrue: [ ^ SearchResult noFail ].	searchDepthLiteral isVariable ifTrue: [ ^ SearchResult noFail ].	" TODO: should we allow checking of number of results, where N is an integer? "	m isModuleLiteral ifFalse: [ ^ SearchResult fail ].	query isStatement ifFalse: [ ^ SearchResult fail ].	searchDepthLiteral isInteger ifFalse: [ ^ SearchResult fail ].	searchDepth := searchDepthLiteral value.	(searchDepth &lt; 1) ifTrue: [ ^ SearchResult fail ].	result := statement copy.	(result atIndex: 2) bindAllVariables.	numResults := m value module numResultsFor: query depthLimit: searchDepth.	numResultsVar isVariable ifTrue: [		result atIndex: 3 put: (FaishLiteral value: numResults).		^ SearchResult result: result.	] ifFalse: [		numResultsVar isInteger ifTrue: [			(numResults = (numResultsVar value)) 				ifTrue: [ ^ SearchResult result: result ]				ifFalse: [ ^ SearchResult fail ]		] ifFalse: [ ^ SearchResult noFail ].	].			" Unreachable. "	^ SearchResult fail.</body>
 
-<body package="Faish" selector="builtinModuleCreate:">builtinModuleCreate:statement	"create:module result:M."	| m |	m := statement at: #result.	m isVariable ifTrue: [		| result |		result := statement copy.		result at: #result put: (FaishLiteral value: (ModuleImport new module:(FaishModule new))).		^ SearchResult result: result	] ifFalse: [		^ SearchResult fail.	].</body>
+<body package="Faish" selector="builtinModuleCreate:">builtinModuleCreate:statement	"create:module result:M."	| m |	m := statement at: #result.	m isVariable ifTrue: [		| result |		result := statement copy.		result at: #result put: (FaishLiteral value: (ModuleImport new module:(AbstractModule new))).		^ SearchResult result: result	] ifFalse: [		^ SearchResult fail.	].</body>
 
 <body package="Faish" selector="builtinModuleNumResultsStepLimit:">builtinModuleNumResultsStepLimit: statement	"module:M query:Q numResults:N stepLimit:D "	| m query numResultsVar numResults searchDepthLiteral searchDepth result |	m := statement atIndex: 1.	query := statement atIndex: 2.	numResultsVar := statement atIndex: 3.	searchDepthLiteral := statement atIndex: 4.		" TODO: should we allow checking of number of results, where N is an integer? "	m isVariable ifTrue: [ ^ SearchResult noFail ].	query isVariable ifTrue: [ ^ SearchResult noFail ].	searchDepthLiteral isVariable ifTrue: [ ^ SearchResult noFail ].	m isModuleLiteral ifFalse: [ ^ SearchResult fail ].	query isStatement ifFalse: [ ^ SearchResult fail ].	searchDepthLiteral isInteger ifFalse: [ ^ SearchResult fail ].	searchDepth := searchDepthLiteral value.	(searchDepth &lt; 1) ifTrue: [ ^ SearchResult fail ].	result := statement copy.	(result atIndex: 2) bindAllVariables.	numResults := m value module numResultsFor: query stepLimit: searchDepth.	numResultsVar isVariable ifTrue: [		result atIndex: 3 put: (FaishLiteral value: numResults).		^ SearchResult result: result.	] ifFalse: [		numResultsVar isInteger ifTrue: [			(numResults = (numResultsVar value)) 				ifTrue: [ ^ SearchResult result: result ]				ifFalse: [ ^ SearchResult fail ]		] ifFalse: [ ^ SearchResult fail ].	].			" Unreachable. "	^ SearchResult fail.</body>
 
@@ -2024,7 +2103,7 @@
 
 <body package="Faish" selector="isModuleLiteral">isModuleLiteral	^ value isKindOf: ModuleImport.</body>
 
-<body package="Faish" selector="isStatementLiteral">isStatementLiteral	^ value isKindOf: FaishStatement.</body>
+<body package="Faish" selector="isStatementLiteral">isStatementLiteral	^ value isKindOf: LegacyFaishStatement.</body>
 </methods>
 
 <methods>
@@ -2105,22 +2184,22 @@
 
 
 <methods>
-<class-id>FaishModule class</class-id> <category>class initialization</category>
+<class-id>AbstractModule class</class-id> <category>class initialization</category>
 
-<body package="Faish" selector="initialize">initialize	" These are pre-parsed module templates. "	StatementModuleName := (FaishModule new) parse: 'module:ThisModule metadata:(name:Y).'.	StatementImport := (FaishModule new) parse: 'module:ThisModule metadata:(importModule:X name:Y uri:Z).'.</body>
+<body package="Faish" selector="initialize">initialize	" These are pre-parsed module templates. "	StatementModuleName := (AbstractModule new) parse: 'module:ThisModule metadata:(name:Y).'.	StatementImport := (AbstractModule new) parse: 'module:ThisModule metadata:(importModule:X name:Y uri:Z).'.</body>
 </methods>
 
 <methods>
-<class-id>FaishModule class</class-id> <category>instance creation</category>
+<class-id>AbstractModule class</class-id> <category>instance creation</category>
+
+<body package="Faish" selector="hintQuery">hintQuery	| hintString stream |	hintString := 'hint:(			statement:S			node:_			thread:_			relayIn:_			relayOut:_			advice:_ ).'.	stream := ReadStream on: hintString.	^ LegacyFaishStatement readFrom: stream onError: [ self error ].</body>
 
 <body package="Faish" selector="new">new	"Answer a newly created and initialized instance."	^super new initialize</body>
-
-<body package="Faish" selector="hintQuery">hintQuery	| hintString stream |	hintString := 'hint:(			statement:S			node:_			thread:_			relayIn:_			relayOut:_			advice:_ ).'.	stream := ReadStream on: hintString.	^ FaishStatement readFrom: stream onError: [ self error ].</body>
 </methods>
 
 
 <methods>
-<class-id>FaishModule</class-id> <category>intelligence</category>
+<class-id>AbstractModule</class-id> <category>intelligence</category>
 
 <body package="Faish" selector="doReward">doReward	" Moot point - this module probably is manually coded. "</body>
 
@@ -2128,7 +2207,7 @@
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>accessing</category>
+<class-id>AbstractModule</class-id> <category>accessing</category>
 
 <body package="Faish" selector="isTestModule">isTestModule	self halt: 'Remove me!'.</body>
 
@@ -2138,7 +2217,7 @@
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>copying</category>
+<class-id>AbstractModule</class-id> <category>copying</category>
 
 <body package="Faish" selector="copy">copy	| result |	result := super copy.	^ result copyFrom: self.</body>
 
@@ -2146,7 +2225,7 @@
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>private</category>
+<class-id>AbstractModule</class-id> <category>private</category>
 
 <body package="Faish" selector="processSpecialStatement:">processSpecialStatement: aStatement	" Test whether that statement is special (e.g. metadata:(name:[""foo]) ) and react accordingly.	  Special rules are currently:		* module:thisModule metadata:(name:Foo) (redefines name, will fail if there is already a name)		* module:thisModule metadata:(import:AnotherModuleUUID name:name) (adds a module import). "	aStatement isVariable ifTrue: [ 		" It matches everything. "		^ self 	].	(aStatement matches: StatementModuleName) ifTrue: [		self renameFromStatement: aStatement. 		^ self. 	].	(aStatement matches: StatementImport) ifTrue: [		self addImportFromStatement: aStatement.		 ^ self. 	].</body>
 
@@ -2154,21 +2233,13 @@
 
 <body package="Faish" selector="parse:">parse: aString	^ self parse: aString onError: [ :errorString :i | ^ self halt: errorString ].</body>
 
-<body package="Faish" selector="parse:onError:">parse: aString onError: errorBlock	| stream result |	stream := ReadStream on: aString asString trimBlanks.	result := FaishStatement readFrom: stream onError: errorBlock.	self prepareHintsFor: result.	^ result.</body>
+<body package="Faish" selector="parse:onError:">parse: aString onError: errorBlock	| stream result |	stream := ReadStream on: aString asString trimBlanks.	result := LegacyFaishStatement readFrom: stream onError: errorBlock.	self prepareHintsFor: result.	^ result.</body>
 
 <body package="Faish" selector="renameFromStatement:">renameFromStatement: aStatement	name := ((aStatement at: #metadata) at: #name) value asString.</body>
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>queries</category>
-
-<body package="Faish" selector="querySimply:">querySimply: aString	^ self querySimply: aString onError: [ :errorString :sourceIndex | self halt: errorString ].</body>
-
-<body package="Faish" selector="numResultsFor:depthLimit:">numResultsFor: aQuery depthLimit: depth	" Perform that query and return the number of results found. Limit deductions to depth levels. Return the number of unique results. Use depth=1 for a simple query. "	| query n next |	query := Searcher new query: aQuery module: self.	query depthLimit: depth.	n := 0.	[ query hasMoreResults ] whileTrue: [		next := query next.		(next isNil not and: [ next isStatement ]) ifTrue: [ n := n + 1 ].	].	^ n.</body>
-
-<body package="Faish" selector="query:onError:">query: aStatement onError: errorBlock	" Return the query, derived from my memory. If the query has variables in it, try to unify those variables with existing knowledge. If the query is not true (i.e. it can not be derived from the database), return nil. 	You need to set a limit on the query, or it will fail."	| result |	result := Searcher new query: aStatement module: self.	^ result.</body>
-
-<body package="Faish" selector="querySimply:onError:">querySimply: aString onError: errorBlock	" Return the query, but do no deduction. Only find simple results and do not interpret or return if:then: rules. "	| query ms |	query := self parse: aString onError: errorBlock.	ms := MatchingSimpleModuleSearcher module: self searchingFor: query.	^ ms.</body>
+<class-id>AbstractModule</class-id> <category>queries</category>
 
 <body package="Faish" selector="withQuery:do:ifNoResults:limitTo:">withQuery: aString do: aBlock ifNoResults: anotherBlock limitTo: maxNumResults	" Do the query. If a result is found, pass it as an argument into aBlock. Otherwise evaluate anotherBlock. I return either the result of anotherBlock value, or nil. "	| query result n |	n := maxNumResults.	query := Searcher new queryString: aString module: self onError: [ :errorString :i | self halt: errorString ].	query stepLimit: 5000.	" Determine if there are no results. "	result := query next.	( result isNil and: [ query hasMoreResults not ] ) 		ifTrue: [ ^ anotherBlock value ]		ifFalse: [ aBlock value: result ].	" Do the iteration. "	[ query hasMoreResults ] whileTrue: [		n := n - 1.		( n &lt; 1 ) ifTrue: [ ^ nil ].		result := query next.		result isNil ifFalse: [ aBlock value: result ].	].	^ nil.</body>
 
@@ -2181,10 +2252,18 @@
 <body package="Faish" selector="withQuerySimply:do:ifNoResults:limitTo:">withQuerySimply: aString do: aBlock ifNoResults: anotherBlock limitTo: maxNumResults	" Do the query. If a result is found, pass it as an argument into aBlock. Otherwise evaluate anotherBlock. I return either the result of anotherBlock value, or nil. "	| query searcher result n |	" TODO: it makes no sense to have maxNumResults. "	n := maxNumResults.	query := self parse: aString onError: [ :errorString :i | self halt: errorString ].	searcher := MatchingModuleSearcher module: self searchingFor: query.	" Determine if there are no results. "	result := searcher next.	( result isResult ) 		ifTrue: [ aBlock value: result statement ]		ifFalse: [ ^ anotherBlock value ].	" Do the iteration. "	[ 			result := searcher next.		result isResult 	] whileTrue: [			aBlock value: result statement.			n := n - 1.			( n &lt; 1 ) ifTrue: [ ^ nil ].		].	^ nil.</body>
 
 <body package="Faish" selector="numResultsFor:timeLimit:">numResultsFor: aQuery timeLimit: time	" Perform that query and return the number of results found. Limit deductions to a number of steps. Return the number of unique results. Use depth=1 for a simple query. "	| query n next |	query := Searcher new query: aQuery module: self.	query timeLimit: time.	n := 0.	[ query hasMoreResults ] whileTrue: [		next := query next.		(next isNil not and: [ next isStatement ]) ifTrue: [ n := n + 1 ].	].	^ n.</body>
+
+<body package="Faish" selector="querySimply:">querySimply: aString	^ self querySimply: aString onError: [ :errorString :sourceIndex | self halt: errorString ].</body>
+
+<body package="Faish" selector="numResultsFor:depthLimit:">numResultsFor: aQuery depthLimit: depth	" Perform that query and return the number of results found. Limit deductions to depth levels. Return the number of unique results. Use depth=1 for a simple query. "	| query n next |	query := Searcher new query: aQuery module: self.	query depthLimit: depth.	n := 0.	[ query hasMoreResults ] whileTrue: [		next := query next.		(next isNil not and: [ next isStatement ]) ifTrue: [ n := n + 1 ].	].	^ n.</body>
+
+<body package="Faish" selector="query:onError:">query: aStatement onError: errorBlock	" Return the query, derived from my memory. If the query has variables in it, try to unify those variables with existing knowledge. If the query is not true (i.e. it can not be derived from the database), return nil. 	You need to set a limit on the query, or it will fail."	| result |	result := Searcher new query: aStatement module: self.	^ result.</body>
+
+<body package="Faish" selector="querySimply:onError:">querySimply: aString onError: errorBlock	" Return the query, but do no deduction. Only find simple results and do not interpret or return if:then: rules. "	| query ms |	query := self parse: aString onError: errorBlock.	ms := MatchingSimpleModuleSearcher module: self searchingFor: query.	^ ms.</body>
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>initialize-release</category>
+<class-id>AbstractModule</class-id> <category>initialize-release</category>
 
 <body package="Faish" selector="initialize">initialize	axioms := OrderedCollection new.	imports := OrderedCollection new.	" All empty modules have the same uuid and are equal. "	uuid :=  (Security.MD5 hash: (0 printString)) asHexString.	modified := true.	needsReset := false.	self clearErrors.</body>
 
@@ -2192,7 +2271,7 @@
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>id</category>
+<class-id>AbstractModule</class-id> <category>id</category>
 
 <body package="Faish" selector="repositoryFilename">repositoryFilename	self recalculateIdIfNeeded.	^ uuid, '.squl'.</body>
 
@@ -2206,41 +2285,53 @@
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>hints</category>
+<class-id>AbstractModule</class-id> <category>hints</category>
+
+<body package="Faish" selector="reset">reset	" Clear and re-query all the hints. In the future, I might do other stuff."	|  hintQ hintI |	" There are quite a few possible ways of doing this. This one is the 'nuke it from orbit' approach. "		" See also prepareHintsFor&gt;&gt;"		hintQ := AbstractModule hintQuery.	hintI := hintQ atIndex: 1.		axioms do: [:each | 		each isStatement ifTrue: [			self setHintsAvailableForStatement: each preparedHintsQuery: hintQ arg1: hintI.		].	].	needsReset := false.</body>
 
 <body package="Faish" selector="setHintsAvailableForStatement:preparedHintsQuery:arg1:">setHintsAvailableForStatement: s preparedHintsQuery: hintQ arg1: hintI	| q |	s hintsAvailable: false.	hintI atIndex: 1 put: s.	q := MatchingUnunifiedModuleSearcher module: self searchingFor: hintQ.	(q next) isResult ifTrue: [		s hintsAvailable: true.	].	( s isIfThenRule ) ifTrue: [		s premisesDo: [ :each |			each isStatement ifTrue: [ 				each hintsAvailable: false.				hintI atIndex: 1 put: each.				q := MatchingUnunifiedModuleSearcher module: self searchingFor: hintQ.				(q next) isResult ifTrue: [					each hintsAvailable: true.				].			].		].	].</body>
 
-<body package="Faish" selector="prepareHintsFor:">prepareHintsFor: statement	" See also &gt;&gt;reset. "	| hintQ hintI |	hintQ := FaishModule hintQuery.	hintI := hintQ atIndex: 1.	self setHintsAvailableForStatement: statement preparedHintsQuery: hintQ arg1: hintI.</body>
-
-<body package="Faish" selector="reset">reset	" Clear and re-query all the hints. In the future, I might do other stuff."	|  hintQ hintI |	" There are quite a few possible ways of doing this. This one is the 'nuke it from orbit' approach. "		" See also prepareHintsFor&gt;&gt;"		hintQ := FaishModule hintQuery.	hintI := hintQ atIndex: 1.		axioms do: [:each | 		each isStatement ifTrue: [			self setHintsAvailableForStatement: each preparedHintsQuery: hintQ arg1: hintI.		].	].	needsReset := false.</body>
+<body package="Faish" selector="prepareHintsFor:">prepareHintsFor: statement	" See also &gt;&gt;reset. "	| hintQ hintI |	hintQ := AbstractModule hintQuery.	hintI := hintQ atIndex: 1.	self setHintsAvailableForStatement: statement preparedHintsQuery: hintQ arg1: hintI.</body>
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>streams</category>
+<class-id>AbstractModule</class-id> <category>streams</category>
 
-<body package="Faish" selector="readModuleIdsFrom:onError:">readModuleIdsFrom: aStream onError: errorBlock	| next result handle digest splitIndex |	result := Dictionary new.	next := nil.	[		next := self readUpToNewLineFrom: aStream.		( next = '--' ) ifTrue: [ ^ result ].		next isEmpty ifFalse: [			splitIndex := next indexOf: $:.			(splitIndex &lt; 1) ifTrue: [ 				^ errorBlock 					value: 'Module reference does not have a colon in it.' 					value: (aStream readPosition) 					value: next.			].			handle := next copyFrom: 1 to: splitIndex-1.			digest := next copyFrom: splitIndex + 1 to: (next size).			result at: handle put: digest.		].	] repeat.</body>
-
-<body package="Faish" selector="readUpToNewLineFrom:">readUpToNewLineFrom: aStream	| next result |	" Be super tolerant of cr / lf issues. Stupid Windows."	result := WriteStream on: (String new).	[ 		next := aStream next.		((next = Character cr) or: [ next = Character lf]) or: [ aStream atEnd ]	] whileFalse: [ 		result nextPut: next	].	next := aStream peek.	" Remove LFs after CRs. Also be tolerant of other ways of doing it, even if they're retarded. "	((next = Character cr) or: [ next = Character lf]) ifTrue: [		aStream next.	]. 	^ result contents.</body>
-
-<body package="Faish" selector="readFrom:">readFrom: aStream	^ self readFrom: aStream onError: [ :errorString :i | ^ self halt: errorString ].</body>
-
-<body package="Faish" selector="readFrom:onError:">readFrom: aStream onError: errorBlock	| nextStatement sizeString moduleIds |	" TODO: calculate the MD5 digest as we read the module in. "	" TODO: improve error handling on bad files. "		self expect: 'Application/vnd.squl1 ModuleExport size=' from: aStream.	sizeString := self readUpToNewLineFrom: aStream. " TODO: use it as well. "	moduleIds := self readModuleIdsFrom: aStream onError: [ :e :i :moduleImportLine |		self addStatement: (CodeModule syntaxErrorStatement:moduleImportLine position: 0 message: e).	].		[ 		aStream atEnd	] whileFalse: [		| fs |		fs := FaishStatement new.		nextStatement := fs readFrom: aStream onError: [ :message :pos |			| statementString |			statementString := fs sourceCode, (self readUpTo: $. from: aStream), '.'.			self addStatement: (CodeModule syntaxErrorStatement: statementString position: pos message: message).			nil.		].		nextStatement isNil ifFalse: [ 			nextStatement recurse: [ :each |				each isModuleLiteral ifTrue: [					each value id: (moduleIds at: each value handle ifAbsent: [ nil ]).				]			].			self add: nextStatement.		].	].	self recalculateId.	self reloadImports.	self reloadName.</body>
+<body package="Faish" selector="readFrom:onError:">readFrom: aStream onError: errorBlock	| nextStatement sizeString moduleIds |	" TODO: calculate the MD5 digest as we read the module in. "	" TODO: improve error handling on bad files. "		self expect: 'Application/vnd.squl1 ModuleExport size=' from: aStream.	sizeString := self readUpToNewLineFrom: aStream. " TODO: use it as well. "	moduleIds := self readModuleIdsFrom: aStream onError: [ :e :i :moduleImportLine |		self addStatement: (LegacyModule syntaxErrorStatement:moduleImportLine position: 0 message: e).	].		[ 		aStream atEnd	] whileFalse: [		| fs |		fs := LegacyFaishStatement new.		nextStatement := fs readFrom: aStream onError: [ :message :pos |			| statementString |			statementString := fs sourceCode, (self readUpTo: $. from: aStream), '.'.			self addStatement: (LegacyModule syntaxErrorStatement: statementString position: pos message: message).			nil.		].		nextStatement isNil ifFalse: [ 			nextStatement recurse: [ :each |				each isModuleLiteral ifTrue: [					each value id: (moduleIds at: each value handle ifAbsent: [ nil ]).				]			].			self add: nextStatement.		].	].	self recalculateId.	self reloadImports.	self reloadName.</body>
 
 <body package="Faish" selector="expect:from:">expect: aString from: aStream	1 to: aString size do: [ :i |		(aStream next = (aString at: i)) ifFalse: [			^ self error: 'Expected: ', aString.		].	].</body>
 
 <body package="Faish" selector="writeOn:">writeOn: aStream	| moduleSource |	" TODO: a streaming version of this that doesn't take so much memory. "	moduleSource := self recalculateId.	" TODO: Unicode marker. "	aStream		nextPutAll: 'Application/vnd.squl1 ModuleExport size=';		nextPutAll: moduleSource size printString;		cr;		nextPutAll: self handle;		nextPut: $:;		nextPutAll: uuid;		cr.	imports do: [ :each |		each recalculateIdIfNeeded.		aStream nextPutAll: each handle;			nextPut: $:;			nextPutAll: each uuid;			cr.	].	aStream nextPutAll: '--'; cr.	aStream nextPutAll: moduleSource.</body>
 
 <body package="Faish" selector="readUpTo:from:">readUpTo: aCharacter from: aStream	| next result |	result := WriteStream on: (String new: 80).	[ 		next := aStream next.		(next = aCharacter) or: [ aStream atEnd ]	] whileFalse: [ 		(next = Character lf) ifFalse: [			result nextPut: next		]	].	^ result contents.</body>
+
+<body package="Faish" selector="readModuleIdsFrom:onError:">readModuleIdsFrom: aStream onError: errorBlock	| next result handle digest splitIndex |	result := Dictionary new.	next := nil.	[		next := self readUpToNewLineFrom: aStream.		( next = '--' ) ifTrue: [ ^ result ].		next isEmpty ifFalse: [			splitIndex := next indexOf: $:.			(splitIndex &lt; 1) ifTrue: [ 				^ errorBlock 					value: 'Module reference does not have a colon in it.' 					value: (aStream readPosition) 					value: next.			].			handle := next copyFrom: 1 to: splitIndex-1.			digest := next copyFrom: splitIndex + 1 to: (next size).			result at: handle put: digest.		].	] repeat.</body>
+
+<body package="Faish" selector="readFrom:">readFrom: aStream	^ self readFrom: aStream onError: [ :errorString :i | ^ self halt: errorString ].</body>
+
+<body package="Faish" selector="readUpToNewLineFrom:">readUpToNewLineFrom: aStream	| next result |	" Be super tolerant of cr / lf issues. Stupid Windows."	result := WriteStream on: (String new).	[ 		next := aStream next.		((next = Character cr) or: [ next = Character lf]) or: [ aStream atEnd ]	] whileFalse: [ 		result nextPut: next	].	next := aStream peek.	" Remove LFs after CRs. Also be tolerant of other ways of doing it, even if they're retarded. "	((next = Character cr) or: [ next = Character lf]) ifTrue: [		aStream next.	]. 	^ result contents.</body>
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>printing</category>
+<class-id>AbstractModule</class-id> <category>printing</category>
 
 <body package="Faish" selector="printOn:">printOn: aStream	name isNil ifTrue: [ 		aStream nextPutAll: 'Unnamed module'.	] ifFalse: [		aStream nextPutAll: name asString.	].	" TODO: remove me. I only exist until I've fixed up all my existing modules."	errors isNil ifTrue: [ ^ self ].	errors isEmpty ifFalse: [ 		aStream nextPutAll: ' (broken!)'	].</body>
 </methods>
 
 <methods>
-<class-id>FaishModule</class-id> <category>public</category>
+<class-id>AbstractModule</class-id> <category>public</category>
+
+<body package="Faish" selector="handle">handle	" Return a fairly unique yet human readable handle to represent this module. "	| result |	name isNil ifTrue: [ ^ 'mEmpty' ].	result := WriteStream on: (String new: 20).	result nextPut: $m. "m for module :-) "	name do: [ :each | 		each isAlphaNumeric ifTrue: [			result nextPut: each.		]	].	result nextPutAll: (axioms size printString).	^ result contents.</body>
+
+<body package="Faish" selector="findInCache:">findInCache: aStatement	| searcher |	cache isNil ifTrue: [ ^ nil ].	searcher := EqualityMemorySearcher module: cache searchingFor: aStatement.	^  searcher next.</body>
+
+<body package="Faish" selector="remove:">remove: aRule	modified := true.	axioms remove: aRule.	(aRule matches: (self parse:'module:Z metadata:(importModule:X name:Y).'))		ifTrue: [ self reloadImports ].	needsReset := true.</body>
+
+<body package="Faish" selector="isModuleImport">isModuleImport 	^ false.</body>
+
+<body package="Faish" selector="insert:before:">insert: aRule before: anIndex	" Add the rule; return nil if the rule already exists. 	Note that OrderedCollection&gt;&gt;insert:before: is private and shouldn't be used. It doesn't behave the way you think it does. Use &gt;&gt;add:beforeIndex: instead."	aRule bake.		(self containsRule: aRule) ifTrue: [ ^ nil ].	self processSpecialStatement: aRule.	modified := true.	axioms add: aRule beforeIndex: anIndex.	needsReset := true.</body>
+
+<body package="Faish" selector="addStatement:onError:">addStatement: aString onError: errorBlock	| rule |	rule := self parse: aString onError: errorBlock.	(self add: rule) isNil ifTrue: [ ^ nil ].	^ rule.</body>
 
 <body package="Faish" selector="addToCache:">addToCache: aRule	(cache isNil not) ifTrue: [ 		cache add: aRule.	].</body>
 
@@ -2270,11 +2361,11 @@
 
 <body package="Faish" selector="imports">imports 	^ imports.</body>
 
-<body package="Faish" selector="addRule:">addRule: aString	" Deprecated. Use &gt;&gt;addStatement:onError: instead. "	self addStatement: aString onError: [ :errorString :sourceIndex | self halt: errorString ].</body>
+<body package="Faish" selector="addStatement:">addStatement: aString	| rule |	rule := self parse: aString.	(self add: rule) isNil ifTrue: [ ^ nil ].	^ rule.</body>
 
 <body package="Faish" selector="addImport:">addImport: anotherModule	| importRule addedRule anotherModuleName |	anotherModuleName := anotherModule name.	anotherModuleName isNil ifTrue: [ anotherModuleName := 'Unnamed module' ].	" We break encapsulation a bit to avoid special rules handling. Ideally, I'd just use &gt;&gt;addRule:. "	importRule := self parse: 'module:[	thisModule] metadata:(importModule:replaceMe name:["', anotherModuleName, '] uri:unknown).'.	importRule source: nil.	(importRule at: #module) value 		module: self;		handle: (self handle).	(importRule at: #metadata) at: #importModule put: (FaishLiteral new value: (ModuleImport new module: anotherModule)).	importRule bake.	modified := true.	addedRule := axioms add: importRule.	addedRule isNil ifTrue: [ ^ nil ].	" And, simply, ..."	imports add: anotherModule.</body>
 
-<body package="Faish" selector="addStatement:">addStatement: aString	| rule |	rule := self parse: aString.	(self add: rule) isNil ifTrue: [ ^ nil ].	^ rule.</body>
+<body package="Faish" selector="addRule:">addRule: aString	" Deprecated. Use &gt;&gt;addStatement:onError: instead. "	self addStatement: aString onError: [ :errorString :sourceIndex | self halt: errorString ].</body>
 
 <body package="Faish" selector="containsRule:">containsRule: aFaishStatement	" Return true if I already contain the given statement. "	| ms |	ms := EqualityMemorySearcher module: self searchingFor: aFaishStatement.	^ (ms next) isNil not.</body>
 
@@ -2287,40 +2378,35 @@
 <body package="Faish" selector="reloadImports">reloadImports	self clearErrors.	imports := OrderedCollection new.	self 		withQuerySimply: 'module:ThisModule metadata:(importModule:X name:Y uri:Z)?'		do: [ :each |  | moduleImport |			moduleImport := ((each at: #metadata) at: #importModule) value.			moduleImport module isNil ifTrue: [				moduleImport findModuleOnError: [ :message :i |					errors add: message. nil.				]. 				modified := true.			].			(moduleImport module) isNil ifFalse: [ 				imports add: (  moduleImport module).			].		]		ifNoResults: [] 		limitTo: 500.</body>
 
 <body package="Faish" selector="at:">at: n	^ axioms at: n.</body>
-
-<body package="Faish" selector="handle">handle	" Return a fairly unique yet human readable handle to represent this module. "	| result |	name isNil ifTrue: [ ^ 'mEmpty' ].	result := WriteStream on: (String new: 20).	result nextPut: $m. "m for module :-) "	name do: [ :each | 		each isAlphaNumeric ifTrue: [			result nextPut: each.		]	].	result nextPutAll: (axioms size printString).	^ result contents.</body>
-
-<body package="Faish" selector="findInCache:">findInCache: aStatement	| searcher |	cache isNil ifTrue: [ ^ nil ].	searcher := EqualityMemorySearcher module: cache searchingFor: aStatement.	^  searcher next.</body>
-
-<body package="Faish" selector="remove:">remove: aRule	modified := true.	axioms remove: aRule.	(aRule matches: (self parse:'module:Z metadata:(importModule:X name:Y).'))		ifTrue: [ self reloadImports ].	needsReset := true.</body>
-
-<body package="Faish" selector="isModuleImport">isModuleImport 	^ false.</body>
-
-<body package="Faish" selector="insert:before:">insert: aRule before: anIndex	" Add the rule; return nil if the rule already exists. 	Note that OrderedCollection&gt;&gt;insert:before: is private and shouldn't be used. It doesn't behave the way you think it does. Use &gt;&gt;add:beforeIndex: instead."	aRule bake.		(self containsRule: aRule) ifTrue: [ ^ nil ].	self processSpecialStatement: aRule.	modified := true.	axioms add: aRule beforeIndex: anIndex.	needsReset := true.</body>
-
-<body package="Faish" selector="addStatement:onError:">addStatement: aString onError: errorBlock	| rule |	rule := self parse: aString onError: errorBlock.	(self add: rule) isNil ifTrue: [ ^ nil ].	^ rule.</body>
 </methods>
 
 
 <methods>
-<class-id>CodeModule class</class-id> <category>utilities</category>
+<class-id>LegacyModule class</class-id> <category>utilities</category>
+
+<body package="Faish" selector="syntaxErrorStatement:position:message:">syntaxErrorStatement: statementString position: i message:errorMsg	" Return a string, which contains a parseable syntax error statement containing statementString. "	| str |	str := WriteStream on: (String new: (statementString size + 'syntaxError: ["].' size)).	str nextPutAll: 'error: ["'.	str nextPutAll: (LegacyModule sanitizeErrorString: errorMsg).	str nextPutAll: '] source: ["'.	str nextPutAll: (LegacyModule sanitizeErrorString: statementString).	str nextPutAll: '] position:[+'.	str nextPutAll: (i printString).	str nextPutAll: '].'.	^ str contents.</body>
 
 <body package="Faish" selector="sanitizeErrorString:">sanitizeErrorString: aString	" Make sure that any literals in the string have matching square brackets. "	| numOpenBrackets result |	numOpenBrackets := 0.	result := WriteStream on: (String new: aString size).	aString do: [ :each | 		(each = $[ ) ifTrue: [			numOpenBrackets := numOpenBrackets + 1.		].		(each = $] ) ifTrue: [			(numOpenBrackets = 0) ifTrue: [				result nextPutAll: ' x[x '.			] ifFalse: [					numOpenBrackets := numOpenBrackets - 1.			]		].		result nextPut: each.	].	(numOpenBrackets &gt; 0) ifTrue: [		result nextPutAll: ' x'.		numOpenBrackets timesRepeat: [			result nextPut: $].		]	].	^ result contents.</body>
+</methods>
 
-<body package="Faish" selector="syntaxErrorStatement:position:message:">syntaxErrorStatement: statementString position: i message:errorMsg	" Return a string, which contains a parseable syntax error statement containing statementString. "	| str |	str := WriteStream on: (String new: (statementString size + 'syntaxError: ["].' size)).	str nextPutAll: 'error: ["'.	str nextPutAll: (CodeModule sanitizeErrorString: errorMsg).	str nextPutAll: '] source: ["'.	str nextPutAll: (CodeModule sanitizeErrorString: statementString).	str nextPutAll: '] position:[+'.	str nextPutAll: (i printString).	str nextPutAll: '].'.	^ str contents.</body>
+
+<methods>
+<class-id>LegacyModule</class-id> <category>initialize-release</category>
+
+<body package="Faish" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	readOnly := false.	^self</body>
+</methods>
+
+<methods>
+<class-id>LegacyModule</class-id> <category>accessing</category>
+
+<body package="Faish" selector="readOnly:">readOnly: boolean	readOnly := boolean.</body>
 </methods>
 
 
 <methods>
 <class-id>CodeModule</class-id> <category>initialize-release</category>
 
-<body package="Faish" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	readOnly := false.	^self</body>
-</methods>
-
-<methods>
-<class-id>CodeModule</class-id> <category>accessing</category>
-
-<body package="Faish" selector="readOnly:">readOnly: boolean	readOnly := boolean.</body>
+<body package="Faish" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	" *** Replace this comment with the appropriate initialization code *** "	^self</body>
 </methods>
 
 
@@ -2338,40 +2424,44 @@
 
 
 <methods>
-<class-id>FaishStatement class</class-id> <category>class initialization</category>
+<class-id>LegacyFaishStatement class</class-id> <category>class initialization</category>
 
-<body package="Faish" selector="initialize">initialize	| b |	" FaishStatement initialize "	BasicLiteralTypes := Dictionary new.	b := BasicLiteralTypes.	b at: $' put: [ :variables :content :errorBlock | 		(content size &lt; 1) ifTrue: [ ^ errorBlock value: 'Empty character literal!' value:0 ].		FaishLiteral value: (( content at: 1) asInteger ) 	].	b at: $] put: [ :variables :content :errorBlock | FaishLiteral value: $] ].	b at: $" put: [ :variables :content :errorBlock | FaishLiteral value: (content asByteArray) ].	b at: $# put: [ :variables :content :errorBlock | FaishLiteral value: (Float readFrom: (ReadStream on: content)) ].		b at: $+ put: [ :variables :content :errorBlock | FaishLiteral value: (Integer readFrom: (ReadStream on: content)) ].	b at: $- put: [ :variables :content :errorBlock | FaishLiteral value: (0 - (Integer readFrom: (ReadStream on: content))) ].	b at: $\ put: [ :variables :content :errorBlock | FaishLiteral value: ( FaishStatement readStatementLiteralFrom: content variables: variables onError: errorBlock) ].	b at: $	 put: [ :variables :content :errorBlock | FaishLiteral value: (ModuleImport new handle: content) ].</body>
+<body package="Faish" selector="initialize">initialize	| b |	" FaishStatement initialize "	BasicLiteralTypes := Dictionary new.	b := BasicLiteralTypes.	b at: $' put: [ :variables :content :errorBlock | 		(content size &lt; 1) ifTrue: [ ^ errorBlock value: 'Empty character literal!' value:0 ].		FaishLiteral value: (( content at: 1) asInteger ) 	].	b at: $] put: [ :variables :content :errorBlock | FaishLiteral value: $] ].	b at: $" put: [ :variables :content :errorBlock | FaishLiteral value: (content asByteArray) ].	b at: $# put: [ :variables :content :errorBlock | FaishLiteral value: (Float readFrom: (ReadStream on: content)) ].		b at: $+ put: [ :variables :content :errorBlock | FaishLiteral value: (Integer readFrom: (ReadStream on: content)) ].	b at: $- put: [ :variables :content :errorBlock | FaishLiteral value: (0 - (Integer readFrom: (ReadStream on: content))) ].	b at: $\ put: [ :variables :content :errorBlock | FaishLiteral value: ( LegacyFaishStatement readStatementLiteralFrom: content variables: variables onError: errorBlock) ].	b at: $	 put: [ :variables :content :errorBlock | FaishLiteral value: (ModuleImport new handle: content) ].</body>
 </methods>
 
 <methods>
-<class-id>FaishStatement class</class-id> <category>parsing</category>
-
-<body package="Faish" selector="readStatementLiteralFrom:variables:onError:">readStatementLiteralFrom: aString variables: variables onError: errorBlock	| nextChar in totem |	totem := FaishStatement new. 	in := ReadStream on: (aString, '.'). "Add a full-stop on the end for good measure."	totem skipWhiteSpace: in.			totem source: (WriteStream on: (String new: (aString size))).	nextChar := in peek.	nextChar isNil ifTrue: [ ^ errorBlock value: 'String literal is empty.' value: 0 ].			(nextChar isUppercase) ifTrue: [ 		^ totem readVariableFrom: in variables: variables onError: errorBlock.	].	(nextChar = $_) ifTrue: [ 		in next.		^ FaishVariable new.	].	(nextChar = $( ) ifTrue: [ | result |		in next. 		totem skipWhiteSpace: in.		result := totem readFrom: in variables: variables onError: errorBlock.		totem skipWhiteSpace: in.		nextChar := in next. 		(nextChar = $) ) ifFalse: [ 			" Then it was a $. or a $?. See &gt;&gt;readSubStatementFrom:variables: "			errorBlock value: 'Missing right parenthesis in this statement. ' value: (in position).			^ nil ].		^ result.	].	(nextChar = $[ ) ifTrue: [		in next.		^ totem readLiteralFrom: in variables: variables onError: errorBlock. "Will consume the $] at the end. "	].	" This is an embarrassing hack, but I'm not going to refactor the parser now. "	((aString indexOf: $:) &gt; 0) ifTrue: [		^ totem readFrom: in variables: variables onError: errorBlock.	] ifFalse: [		^ totem readAtomFrom: in variables: variables onError: errorBlock.	].</body>
+<class-id>LegacyFaishStatement class</class-id> <category>parsing</category>
 
 <body package="Faish" selector="readFrom:onError:">readFrom: stream onError: errorBlock	^ self new readFrom: stream onError: errorBlock.</body>
+
+<body package="Faish" selector="readStatementLiteralFrom:variables:onError:">readStatementLiteralFrom: aString variables: variables onError: errorBlock	| nextChar in totem |	totem := LegacyFaishStatement new. 	in := ReadStream on: (aString, '.'). "Add a full-stop on the end for good measure."	totem skipWhiteSpace: in.			totem source: (WriteStream on: (String new: (aString size))).	nextChar := in peek.	nextChar isNil ifTrue: [ ^ errorBlock value: 'String literal is empty.' value: 0 ].			(nextChar isUppercase) ifTrue: [ 		^ totem readVariableFrom: in variables: variables onError: errorBlock.	].	(nextChar = $_) ifTrue: [ 		in next.		^ FaishVariable new.	].	(nextChar = $( ) ifTrue: [ | result |		in next. 		totem skipWhiteSpace: in.		result := totem readFrom: in variables: variables onError: errorBlock.		totem skipWhiteSpace: in.		nextChar := in next. 		(nextChar = $) ) ifFalse: [ 			" Then it was a $. or a $?. See &gt;&gt;readSubStatementFrom:variables: "			errorBlock value: 'Missing right parenthesis in this statement. ' value: (in position).			^ nil ].		^ result.	].	(nextChar = $[ ) ifTrue: [		in next.		^ totem readLiteralFrom: in variables: variables onError: errorBlock. "Will consume the $] at the end. "	].	" This is an embarrassing hack, but I'm not going to refactor the parser now. "	((aString indexOf: $:) &gt; 0) ifTrue: [		^ totem readFrom: in variables: variables onError: errorBlock.	] ifFalse: [		^ totem readAtomFrom: in variables: variables onError: errorBlock.	].</body>
 </methods>
 
 <methods>
-<class-id>FaishStatement class</class-id> <category>instance creation</category>
+<class-id>LegacyFaishStatement class</class-id> <category>instance creation</category>
 
 <body package="Faish" selector="new">new	^ super new initialize.</body>
 </methods>
 
 
 <methods>
-<class-id>FaishStatement</class-id> <category>comparing</category>
+<class-id>LegacyFaishStatement</class-id> <category>comparing</category>
 
-<body package="Faish" selector="mostlyEquals:">mostlyEquals: another	" Used for comparing statements that may contain tricksy non-comparable literals. "	|  otherArgs  |	(another isMemberOf: FaishStatement) ifFalse: [ ^ false ].	otherArgs := another arguments.	(args size = otherArgs size) ifFalse: [ ^ false ].	1 to: args size do: [ :i | 		| a b |		a := args at: i.		b := otherArgs at: i.		((a key) = (b key)) ifFalse: [ ^ false ].		((a value) mostlyEquals: (b value)) ifFalse: [			^ false		].	].	^ true.</body>
+<body package="Faish" selector="mostlyEquals:">mostlyEquals: another	" Used for comparing statements that may contain tricksy non-comparable literals. "	|  otherArgs  |	(another isMemberOf: LegacyFaishStatement) ifFalse: [ ^ false ].	otherArgs := another arguments.	(args size = otherArgs size) ifFalse: [ ^ false ].	1 to: args size do: [ :i | 		| a b |		a := args at: i.		b := otherArgs at: i.		((a key) = (b key)) ifFalse: [ ^ false ].		((a value) mostlyEquals: (b value)) ifFalse: [			^ false		].	].	^ true.</body>
 
 <body package="Faish" selector="hash">hash	^ args hash.</body>
 
-<body package="Faish" selector="=">= another	(another isMemberOf: FaishStatement) ifFalse: [ ^ false ].	^ args = another arguments .</body>
+<body package="Faish" selector="=">= another	(another isMemberOf: LegacyFaishStatement) ifFalse: [ ^ false ].	^ args = another arguments .</body>
 
 <body package="Faish" selector="signatureHash">signatureHash	" Make a hash using only my signature. "	^ (args collect: [ :each | each key]) hash.</body>
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>accessing</category>
+<class-id>LegacyFaishStatement</class-id> <category>accessing</category>
+
+<body package="Faish" selector="truth">truth	^ truth.</body>
+
+<body package="Faish" selector="hintsAvailable">hintsAvailable	^hintsAvailable</body>
 
 <body package="Faish" selector="variables">variables	| result |	result := IdentitySet new.	self recurse: [ :each |		each isVariable ifTrue: [ result add: each ] ].	^ result.</body>
 
@@ -2411,11 +2501,11 @@
 
 <body package="Faish" selector="statement">statement	" I'm a statement! "	^ self.</body>
 
-<body package="Faish" selector="premiseCount">premiseCount	^ args inject: 0 into: [ :count :each | (each key = #if and: [ each value isStatement or: [ each value isVariable ]]) ifTrue: [ count + 1 ] ifFalse: [ count ] ].</body>
-
 <body package="Faish" selector="at:">at: aSymbol	^ self at: aSymbol ifAbsent: [ self error: 'Statement does not have this clause: ', aSymbol printString. nil ].</body>
 
-<body package="Faish" selector="signature">signature	" This is for long-term planning. Eventually, statements will be made from signatures, which are just statement definitions with an arity. This alleviates the need to have any human-readable forms in the statement implementation. Statements with the same signature will match each other at the outermost level.Until the implementation changes, we just fake it. "	^ FaishStatementSignature from: self.</body>
+<body package="Faish" selector="premiseCount">premiseCount	^ args inject: 0 into: [ :count :each | (each key = #if and: [ each value isStatement or: [ each value isVariable ]]) ifTrue: [ count + 1 ] ifFalse: [ count ] ].</body>
+
+<body package="Faish" selector="signature">signature	" This is for long-term planning. Eventually, statements will be made from signatures, which are just statement definitions with an arity. This alleviates the need to have any human-readable forms in the statement implementation. Statements with the same signature will match each other at the outermost level.Until the implementation changes, we just fake it. "	^ LegacyFaishStatementSignature from: self.</body>
 
 <body package="Faish" selector="unwrap">unwrap	" Return a copy of me with statement, atom and variable literals replaced with their contents. "	^ self class new unwrapFrom: self.</body>
 
@@ -2424,28 +2514,24 @@
 <body package="Faish" selector="isModuleImport">isModuleImport	^ false.</body>
 
 <body package="Faish" selector="conclusion">conclusion	self isIfThenRule ifFalse: [ ^ self ].	^ ((args select: [ :each | each key = #then ]) at: 1) value.</body>
-
-<body package="Faish" selector="truth">truth	^ truth.</body>
-
-<body package="Faish" selector="hintsAvailable">hintsAvailable	^hintsAvailable</body>
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>returns new</category>
+<class-id>LegacyFaishStatement</class-id> <category>returns new</category>
 
-<body package="Faish" selector="copy">copy	" Return a copy of me as a FaishUnifiedStatement, with unifyable variables. "	^ FaishStatement new initializeFrom: self usingVariableMapping: nil.</body>
+<body package="Faish" selector="copy">copy	" Return a copy of me as a FaishUnifiedStatement, with unifyable variables. "	^ LegacyFaishStatement new initializeFrom: self usingVariableMapping: nil.</body>
 
-<body package="Faish" selector="copyUsingVariableMapping:">copyUsingVariableMapping: mapping	" Return a copy of me as a FaishUnifiedStatement, with unifyable variables. "	^ FaishStatement new initializeFrom: self usingVariableMapping: mapping.</body>
+<body package="Faish" selector="copyUsingVariableMapping:">copyUsingVariableMapping: mapping	" Return a copy of me as a FaishUnifiedStatement, with unifyable variables. "	^ LegacyFaishStatement new initializeFrom: self usingVariableMapping: mapping.</body>
 
 <body package="Faish" selector="unifiedFrom:ifFail:">unifiedFrom: anotherStatement ifFail: failBlock	" Replace all my variables with values in anotherStatement. Return false if unification cannot be done."	| c other |	" Recurse through myself, following anotherStatement at the same time. Every time a variable is found, try to replace that variable with the same value from anotherStatement. "	(self = anotherStatement) ifTrue: [  ^ self ].	c := self copy.	other := anotherStatement copy.	^ other unifyClause: other with: c ifFail: [ ^ failBlock value ].</body>
 
-<body package="Faish" selector="copyPreserveVariables">copyPreserveVariables	" Return a copy of me as a FaishUnifiedStatement, with the same variables. This is a private method. "	| variableMapping |	variableMapping := IdentityDictionary new.				self recurse: [ :each | 		each isVariable ifTrue: [			variableMapping at: each put: each 		] 	].	^ FaishStatement new initializeFrom: self usingVariableMapping: variableMapping.</body>
+<body package="Faish" selector="copyPreserveVariables">copyPreserveVariables	" Return a copy of me as a FaishUnifiedStatement, with the same variables. This is a private method. "	| variableMapping |	variableMapping := IdentityDictionary new.				self recurse: [ :each | 		each isVariable ifTrue: [			variableMapping at: each put: each 		] 	].	^ LegacyFaishStatement new initializeFrom: self usingVariableMapping: variableMapping.</body>
 
 <body package="Faish" selector="unifiedGoalFrom:ifFail:">unifiedGoalFrom: goal ifFail: failBlock	" Replace all my variables with values in anotherStatement. Return false if unification cannot be done. "	| c other |	(self conclusion = goal) ifTrue: [ ^ self ].	c := self copy.	other := goal copy.	^ c unifyClause: (c conclusion) with: other ifFail: [ ^ failBlock value ].</body>
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>private</category>
+<class-id>LegacyFaishStatement</class-id> <category>private</category>
 
 <body package="Faish" selector="unifyDoSubstitutionBindings:">unifyDoSubstitutionBindings: bindings	" Search for all variables mapped directly to other variables (A -&gt; B) and substitute them with what the second variable maps to. We ignore variables that point to statements containing variables; those are dealt with later. "	" Be wary here. &gt;&gt;unifyDoSubstitutionBindings... changes bindings and removes stuff from it. We're iterating over that! "	bindings keys sorted do: [ :eachKey |  | eachValue |		(bindings includesKey: eachKey) ifTrue: [			" If may have been removed by a previous iteration. "			eachValue := bindings at: eachKey.			eachValue isVariable ifTrue: [ 				self unifyDoSubstitutionBindings: bindings loopPreventSet: (IdentitySet new) atKey: eachKey replaceValue: eachValue.			].		].	].</body>
 
@@ -2471,7 +2557,7 @@
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>testing</category>
+<class-id>LegacyFaishStatement</class-id> <category>testing</category>
 
 <body package="Faish" selector="isIfThenRule">isIfThenRule	^ self isKindOfRule: #ifThen.</body>
 
@@ -2483,7 +2569,7 @@
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>modification</category>
+<class-id>LegacyFaishStatement</class-id> <category>modification</category>
 
 <body package="Faish" selector="addLabel:value:">addLabel: label value: aValue	" Private method "	baked ifNotNil: [ ^ self error. ].	args add: (Association key: label asSymbol value: aValue).</body>
 
@@ -2501,7 +2587,7 @@
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>initialize-release</category>
+<class-id>LegacyFaishStatement</class-id> <category>initialize-release</category>
 
 <body package="Faish" selector="initialize">initialize	baked ifNotNil: [ ^ self error ].	args := OrderedCollection new.	truth := false. " Used in deduction. "	evaluationOrder := nil. " Only used by if-then statements. See &gt;&gt;evaluationOrder"	hintsAvailable := false. 	importsAvailable := true. " Until proven false. "</body>
 
@@ -2511,7 +2597,7 @@
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>parsing</category>
+<class-id>LegacyFaishStatement</class-id> <category>parsing</category>
 
 <body package="Faish" selector="isSeparator:">isSeparator: char	^ ((char = $) )		or: [char = $.])		or: [char = $?].</body>
 
@@ -2519,7 +2605,7 @@
 
 <body package="Faish" selector="readLabelFrom:onError:">readLabelFrom: in onError: errorBlock	| nextChar label |	self skipWhiteSpace: in.		label := OrderedCollection new.	[ (nextChar := in next) isNil not ] whileTrue: [		source nextPut: nextChar.		(nextChar = $:) ifTrue: [ | result |			result := String withAll: label.			^ result.		] ifFalse: [ 			(#( $( $) $[ $] $ ) contains: [ :each | each = nextChar ]) ifTrue: [				^ errorBlock value: 'Parse error: label had a funny character.' value: (in position).			] ifFalse: [				label add: nextChar.			].		].	].	^ errorBlock value: 'Incomplete label when end of source reached.' value: (in position).</body>
 
-<body package="Faish" selector="readSubStatementFrom:variables:onError:">readSubStatementFrom: in variables: variables onError: errorBlock	| sub |	self skipWhiteSpace: in.	sub := FaishStatement new 		source: source;		readFrom: in variables: variables onError: errorBlock.	^ sub.</body>
+<body package="Faish" selector="readSubStatementFrom:variables:onError:">readSubStatementFrom: in variables: variables onError: errorBlock	| sub |	self skipWhiteSpace: in.	sub := LegacyFaishStatement new 		source: source;		readFrom: in variables: variables onError: errorBlock.	^ sub.</body>
 
 <body package="Faish" selector="readFrom:onError:">readFrom: aStream onError: errorBlock	| variables surroundedByParenthesis nextChar result  |	variables := Dictionary new.	source := WriteStream on: (String new).	self skipWhiteSpaceNoSource: aStream.	surroundedByParenthesis := (aStream peek = $().	result := self readFrom: aStream variables: variables onError: errorBlock.	(aStream peek) isNil ifTrue: [ 		errorBlock value: 'End of statement reached before a period or question mark was found.' value: (aStream position).		^ nil.	].	surroundedByParenthesis ifTrue: [		nextChar := aStream next. 		source nextPut: nextChar.		( nextChar ~= $) ) ifTrue: [			errorBlock value: 'Statement is missing a right parenthesis.' value: (aStream position).			^ nil.		].	].	nextChar := aStream next. 	source nextPut: nextChar.	( (nextChar ~= $.) and: [ nextChar ~= $? ] ) ifTrue: [		errorBlock value: 'Statement does not end in a period or question mark.' value: (aStream position).		^ nil.	].	self skipWhiteSpaceNoSource: aStream.	(args isEmpty and: [ result isVariable not ]) ifTrue: [		errorBlock value: ('No clauses appear in statement: ', self printString) value: (aStream position).		^ nil.	].	^ result.</body>
 
@@ -2543,19 +2629,19 @@
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>deduction</category>
+<class-id>LegacyFaishStatement</class-id> <category>deduction</category>
+
+<body package="Faish" selector="matchesGoal:">matchesGoal: aGoal	^ (self conclusionMatches: aGoal) or: [self matches: aGoal]</body>
 
 <body package="Faish" selector="matches:">matches: otherStatement	" Return true if each of my arguments have values in aStatement "	self 		unifyPopulateBindings: (IdentityDictionary new) 		unifyClause: self 		with: otherStatement 		ifFail: [ ^ false ].	^ true.</body>
 
 <body package="Faish" selector="conclusionMatches:">conclusionMatches: aStatement	" Return whether I have a conclusion that matches with the given statement. "	^ self isIfThenRule and: [ self conclusion matches: aStatement ].</body>
 
 <body package="Faish" selector="isTrue">isTrue	" Return whether all my clauses are true and I am fully unified. "	self premises isEmpty ifTrue: [ ^ truth ].	self premises do: [ :each | each truth ifFalse: [ ^ false ] ].	self conclusion isFullyUnified ifFalse: [ ^ false ].	^ true.</body>
-
-<body package="Faish" selector="matchesGoal:">matchesGoal: aGoal	^ (self conclusionMatches: aGoal) or: [self matches: aGoal]</body>
 </methods>
 
 <methods>
-<class-id>FaishStatement</class-id> <category>printing</category>
+<class-id>LegacyFaishStatement</class-id> <category>printing</category>
 
 <body package="Faish" selector="printOn:">printOn: aStream	| result |	result := self printOn: aStream limit: 80.	aStream nextPut: $..	^ result.</body>
 
@@ -2777,7 +2863,7 @@
 
 <body package="Faish" selector="module">module	^ module.</body>
 
-<body package="Faish" selector="module:">module: newModule	( newModule isKindOf: FaishModule) ifFalse: [ self halt. " a bug. " ].	module := newModule.</body>
+<body package="Faish" selector="module:">module: newModule	( newModule isKindOf: AbstractModule) ifFalse: [ self halt. " a bug. " ].	module := newModule.</body>
 
 <body package="Faish" selector="handle:">handle: newHandle	handle := newHandle.</body>
 
@@ -2794,13 +2880,13 @@
 
 
 <methods>
-<class-id>CacheModule</class-id> <category>public</category>
+<class-id>LegacyCacheModule</class-id> <category>public</category>
 
 <body package="Faish" selector="add:">add: aRule	" Add the rule; return nil if the rule already exists. "	aRule bake.		(self containsRule: aRule) ifTrue: [ ^ nil ].	modified := true.	axioms add: aRule.</body>
 </methods>
 
 <methods>
-<class-id>CacheModule</class-id> <category>initialize-release</category>
+<class-id>LegacyCacheModule</class-id> <category>initialize-release</category>
 
 <body package="Faish" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	^self</body>
 </methods>
@@ -2958,20 +3044,20 @@
 
 
 <methods>
-<class-id>FaishStatementSignature class</class-id> <category>instance creation</category>
+<class-id>LegacyFaishStatementSignature class</class-id> <category>instance creation</category>
 
-<body package="Faish" selector="from:">from: aStatement	| nothing result |	result := FaishStatement new.		nothing := FaishAtom from: #nothing.	aStatement arguments do: [ :each |		result addLabel: (each key) value: nothing.	].	^ result.</body>
+<body package="Faish" selector="from:">from: aStatement	| nothing result |	result := LegacyFaishStatement new.		nothing := FaishAtom from: #nothing.	aStatement arguments do: [ :each |		result addLabel: (each key) value: nothing.	].	^ result.</body>
 </methods>
 
 
 <methods>
-<class-id>FaishStatementSignature</class-id> <category>initialize-release</category>
+<class-id>LegacyFaishStatementSignature</class-id> <category>initialize-release</category>
 
 <body package="Faish" selector="initialize">initialize	"Initialize a newly created instance. This method must answer the receiver."	super initialize.	" *** Replace this comment with the appropriate initialization code *** "	^self</body>
 </methods>
 
 <methods>
-<class-id>FaishStatementSignature</class-id> <category>as yet unclassified</category>
+<class-id>LegacyFaishStatementSignature</class-id> <category>as yet unclassified</category>
 
 <body package="Faish" selector="heuristic">heuristic	" *** This method was defined by FaishStatementComponent as a subclass responsibility.	Replace its body with a proper implementation. *** "	self error: 'Subclass responsibility stub not reimplemented'</body>
 </methods>
@@ -3059,7 +3145,7 @@
 <methods>
 <class-id>Searcher</class-id> <category>initialize-release</category>
 
-<body package="Faish" selector="on:">on: aSearchable	breadthFirstQueue add: (BreadthFirstSearchNode new target: aSearchable). "Because it's the root. "	currentNode := aSearchable.	currentNode searchType: #breadthFirst.	duplicates := CacheModule new.	hasMoreResults := true.	wasStopped := false.</body>
+<body package="Faish" selector="on:">on: aSearchable	breadthFirstQueue add: (BreadthFirstSearchNode new target: aSearchable). "Because it's the root. "	currentNode := aSearchable.	currentNode searchType: #breadthFirst.	duplicates := LegacyCacheModule new.	hasMoreResults := true.	wasStopped := false.</body>
 
 <body package="Faish" selector="deductionQuery:module:heuristic:derivedFrom:origStatement:">deductionQuery: aQuery module: aModule heuristic: h derivedFrom: df origStatement: s 	" Used only from MaximisationSearchable. aQuery is a then-if statement. "	| d |	d := DeductionSearchable from: nil goal: aQuery.	d module: aModule;		derivedFrom: df;		origStatement: s.	self on: d.	^ self.</body>
 
@@ -3105,65 +3191,6 @@
 </methods>
 
 
-<methods>
-<class-id>ExceededTime</class-id> <category>printing</category>
-
-<body package="Faish" selector="printOn:">printOn: str 	str nextPutAll: 'Time exceeded or search halted by user.'.</body>
-</methods>
-
-
-<methods>
-<class-id>SearchResult class</class-id> <category>class initialization</category>
-
-<body package="Faish" selector="initialize">initialize	Fail := self new statement: nil; type: #fail.	NoFail := self new statement: nil; type: #noFail.</body>
-</methods>
-
-<methods>
-<class-id>SearchResult class</class-id> <category>instance creation</category>
-
-<body package="Faish" selector="errorResult:">errorResult: r	^ self new 		type: #error;		statement: r.</body>
-
-<body package="Faish" selector="result:">result: r	^ self new 		type: #result;		statement: r.</body>
-
-<body package="Faish" selector="new">new	"Answer a newly created and initialized instance."	^super new initialize</body>
-
-<body package="Faish" selector="fail">fail	Fail isNil ifTrue: [ self initialize ].	^ Fail.</body>
-
-<body package="Faish" selector="noFail">noFail	NoFail isNil ifTrue: [ self initialize ].	^ NoFail.</body>
-</methods>
-
-
-<methods>
-<class-id>SearchResult</class-id> <category>accessing</category>
-
-<body package="Faish" selector="statement:">statement: s	statement := s.</body>
-
-<body package="Faish" selector="isResult">isResult	^ (statement isNil not and: [ type ~= #error ]) and: [ statement isVariable not ].</body>
-
-<body package="Faish" selector="statement">statement	^ statement.</body>
-
-<body package="Faish" selector="type">type	^type</body>
-
-<body package="Faish" selector="isNoFail">isNoFail	^ type = #noFail.</body>
-
-<body package="Faish" selector="type:">type: aSymbol	" Can be:		#fail -&gt; statement is nil, no results will ever be found.		#noFail -&gt; statement is nil, but results could be found had there been more populated variables (used by builtins).		#error -&gt; An error to show on the screen instead of a result. 		#result -&gt; there is a result! "	type := aSymbol.</body>
-
-<body package="Faish" selector="isFail">isFail	^ type = #fail.</body>
-</methods>
-
-<methods>
-<class-id>SearchResult</class-id> <category>testing</category>
-
-<body package="Faish" selector="isError">isError	^ type = #error.</body>
-</methods>
-
-<methods>
-<class-id>SearchResult</class-id> <category>initialize-release</category>
-
-<body package="Faish" selector="initialize">initialize	super initialize.	type := nil.	statement := nil.	^self</body>
-</methods>
-
-
 
 <initialize>
 <class-id>BuiltInsSearchable</class-id>
@@ -3174,15 +3201,15 @@
 </initialize>
 
 <initialize>
-<class-id>FaishStatement</class-id>
-</initialize>
-
-<initialize>
 <class-id>SearchResult</class-id>
 </initialize>
 
 <initialize>
-<class-id>FaishModule</class-id>
+<class-id>AbstractModule</class-id>
+</initialize>
+
+<initialize>
+<class-id>LegacyFaishStatement</class-id>
 </initialize>
 
 </st-source>
