@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=38126
-mParser270:E727704C7E24B9C51BAEBE9117DC744B
+Application/vnd.squl1 ModuleExport size=38484
+mParser275:78A568590C239BD583BB2ED50022B8C1
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -69,13 +69,15 @@ For migrating between images, also make a tool that converts a module into Small
 
 ].
 
-then:( parseFile:S1 -:M6 )
+then:( parse:S module:Mr )
 if:( create:module result:M1 )
-if:( parseHeader:(+:S1 -:S2) module:(+:M1 -:M2) )
-if:( string:( +:S2 -:EmptyString ) readSoftStatementsInto:( +:M2 -:M3 ) )
-if:( hardenDeclarationsIn:( +:M3 -:M4 ) )
-if:( expandLiteralsIn:( +:M4 -:M5 ) )
-if:( hardenStatementsIn:( +:M5 -:M6 ) ).
+if:( string:S readSoftStatementsInto:( +:M1 -:Mr ) ).
+
+:["Parse the given statement in the context of the given module, but do not add it to that module.].
+
+then:( parse:Statement inModule:M -:H)
+if:( string:Statement statementStringAtHead:SHead rest:S2 )
+if:( parseStatement:SHead module:( +:M -:_ ) result:( success:H ) ).
 
 :[" TODO: process those module IDs. ].
 
@@ -1509,5 +1511,22 @@ then:( test:( parseStatementLiteral:Result) )
 if:( create:module result:M)
 if:( parseStatement:["[\a].] module:(+:M -:_) result:Result ).
 
-module:[	mParser270] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+then:( test:Source query:Q result:R )
+if:( parse:Source module:Mc )
+if:( parse:Q inModule:M -:Qc)
+if:( module:Mc query:Qc iterator:I)
+if:( iterator:I value:R next:_).
+
+test:( test:["
+a b.
+]
+query:["a B?] result:R ).
+
+test:( test:["
+b a.
+a X :- b X.
+]
+query:["a B?] result:R ).
+
+module:[	mParser275] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
