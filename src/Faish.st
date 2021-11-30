@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <st-source>
-<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 30 November 2021 at 9:54:39 PM</time-stamp>
+<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 30 November 2021 at 9:57:27 PM</time-stamp>
 
 
 <component-created>
@@ -2093,7 +2093,7 @@
 
 <body package="Faish" selector="isInteger">isInteger	^ value isInteger.</body>
 
-<body package="Faish" selector="isArray">isArray	^ value isKindOf: ArrayedCollection.</body>
+<body package="Faish" selector="isArray">isArray	^ value isKindOf: SequenceableCollection.</body>
 
 <body package="Faish" selector="isNumber">isNumber	^ value isInteger or: [ value isKindOf: LimitedPrecisionReal].</body>
 
