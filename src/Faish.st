@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 
 <st-source>
-<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 30 November 2021 at 9:57:27 PM</time-stamp>
+<time-stamp>From VisualWorks® Personal Use Edition, 8.2 of 15 July 2016 on 10 December 2021 at 11:35:31 PM</time-stamp>
 
 
 <component-created>
@@ -2379,7 +2379,7 @@
 <methods>
 <class-id>AbstractModule</class-id> <category>compiling</category>
 
-<body package="Faish" selector="checkForLostVariables:onError:">checkForLostVariables: statement onError: errorBlock	" Check that no variable occurs only once in a statement. "	| variables |	statement isIfThenRule ifFalse: [^ self ].		variables := Dictionary new.	statement recurse: [:each | 		each isVariable ifTrue: [			variables at: each put: (1 + variables at: each ifAbsent: [0]).		].	].	variables keysAndValuesDo: [:key :value |		(value==1 and: [key isAnonymous not]) ifTrue: [			^ errorBlock value: 'Not all variables appear more than once.'.		]	]</body>
+<body package="Faish" selector="checkForLostVariables:onError:">checkForLostVariables: statement onError: errorBlock	" Check that no variable occurs only once in a statement. "	| variables |	statement isIfThenRule ifFalse: [^ self ].		variables := Dictionary new.	statement recurse: [:each | 		each isVariable ifTrue: [			variables at: each put: (1 + (variables at: each ifAbsent: [0])).		].	].	variables keysAndValuesDo: [:key :value |		(value==1 and: [key isAnonymous not]) ifTrue: [			^ errorBlock value: 'Not all variables appear more than once.' value:1.		]	]</body>
 
 <body package="Faish" selector="parseWithoutTypecheck:onError:">parseWithoutTypecheck: aString onError: errorBlock	| stream result |	stream := ReadStream on: aString asString trimBlanks.	result := LegacyFaishStatement readFrom: stream onError: errorBlock.		self prepareHintsFor: result.	^ result.</body>
 
@@ -2387,7 +2387,7 @@
 
 <body package="Faish" selector="parse:onError:">parse: aString onError: errorBlock	| stream result |	stream := ReadStream on: aString asString trimBlanks.	result := LegacyFaishStatement readFrom: stream onError: errorBlock.		self checkForLostVariables: result onError: errorBlock.	self typecheck: result onError: errorBlock.		self prepareHintsFor: result.	^ result.</body>
 
-<body package="Faish" selector="typecheck:onError:">typecheck: statement onError: errorBlock	| q r s errorT t |	q := self parseWithoutTypecheck: 'typeCheck:Statement inModule:Module result:Result.' onError: [ ^ self error ].	q atIndex: 1 put: (FaishLiteral value: statement).	q atIndex: 2 put: (FaishLiteral value: self).	r := self query: q onError: [ self halt ].		r timeLimit: 1.	s := r next.	s isNil ifTrue: [^ self].		t := s atIndex: 3.	errorT := self parseWithoutTypecheck: 'error:_' onError: [^ self error].	(t matches: errorT) ifTrue: [		^ errorBlock value: ('Typechecking failed: ', (t atIndex: 1) value).	].</body>
+<body package="Faish" selector="typecheck:onError:">typecheck: statement onError: errorBlock	| q r s errorT t |	q := self parseWithoutTypecheck: 'typeCheck:Statement inModule:Module result:Result.' onError: [ ^ self error ].	q atIndex: 1 put: (FaishLiteral value: statement).	q atIndex: 2 put: (FaishLiteral value: (ModuleImport new module:self)).	r := self query: q onError: [ self halt ].		r timeLimit: 1.	s := r next.	(s isNil and: [ r hasMoreResults not ]) ifTrue: [ ^ self ].	s isStatement ifFalse: [ ^ self ].		t := s atIndex: 3.	errorT := self parseWithoutTypecheck: 'error:_.' onError: [^ self error].	(t matches: errorT) ifTrue: [		^ errorBlock value: ('Typechecking failed: ', (t atIndex: 1) value asString) value:1.	].</body>
 </methods>
 
 
@@ -2643,7 +2643,7 @@
 
 <body package="Faish" selector="processLiteralType:contents:variables:onError:">processLiteralType: literalTypeChar contents: contents variables:variables onError: errorBlock	| action |	" Is it a basic type? "	action :=  BasicLiteralTypes 		at: literalTypeChar 		ifAbsent: [ nil ].	action isNil ifFalse: [		^ action value: variables value: contents value: errorBlock.	].	errorBlock value: ('Unknown literal character: ', literalTypeChar printString, ' for literal contents: ', contents) value: nil.	^ nil.	"TODO: Otherwise we do some fancy stuff with the module. "	" parseLiteral:Contents typeChar:LiteralTypeChar statement:??? result:Result?		result := module query: 'parseLiteral: ', contents, ' statement: ', XXX, ' result: X?'.		... change the statement I'm parsing into that... 		... I shouldn't be doing this until I've parsed the whole statement...	"</body>
 
-<body package="Faish" selector="skipWhiteSpace:">skipWhiteSpace: in	| nextChar |	[(nextChar := in peek) isNil not and: [nextChar isSeparator] ] whileTrue: [ 		source nextPut: in next ].</body>
+<body package="Faish" selector="skipWhiteSpace:">skipWhiteSpace: in	| nextChar |	[(nextChar := in peek) isNil not and: [nextChar isSeparator] ] whileTrue: [ 		source isNil ifFalse: [			source nextPut: in next 		] ifTrue: [			in next.		].	].</body>
 </methods>
 
 <methods>
@@ -2879,7 +2879,7 @@
 
 <body package="Faish" selector="uuid">uuid	" Deprecated. Just call it an ID. "	^ self id.</body>
 
-<body package="Faish" selector="module">module	^ module.</body>
+<body package="Faish" selector="module">module	module isNil ifTrue: [ module := CodeModule new ].	^ module.</body>
 
 <body package="Faish" selector="module:">module: newModule	( newModule isKindOf: AbstractModule) ifFalse: [ self halt. " a bug. " ].	module := newModule.</body>
 
@@ -2948,7 +2948,7 @@
 
 <body package="Faish" selector="name">name 	value ifNil: [ ^ '_', self asOop asString ]. 	^ value</body>
 
-<body package="Faish" selector="isAnonymous">isAnonymous	^ value = $_.</body>
+<body package="Faish" selector="isAnonymous">isAnonymous	^ value isNil or: [ value = $_ ].</body>
 
 <body package="Faish" selector="isFullyUnified">isFullyUnified	^ false.</body>
 
