@@ -344,6 +344,8 @@ Any variables in Query need to be unified before Query will be performed. This w
 
 Here, the built-in will not perform the query until a value for A is found. The query is then performed and the iterator will iterate over statements containing possible values for B.
 
+You can also pass a statement literal to (module: query: iterator:) as a query. 
+
 You can use the following built-in on the iterator to fetch results::
 
     iterator:Iterator value:Result next:NextIterator.

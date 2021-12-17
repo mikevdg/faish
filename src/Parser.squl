@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=38484
-mParser275:78A568590C239BD583BB2ED50022B8C1
+Application/vnd.squl1 ModuleExport size=38590
+mParser276:2148A3C17554C8F7E9473C154B067948
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -1513,7 +1513,7 @@ if:( parseStatement:["[\a].] module:(+:M -:_) result:Result ).
 
 then:( test:Source query:Q result:R )
 if:( parse:Source module:Mc )
-if:( parse:Q inModule:M -:Qc)
+if:( parse:Q inModule:Mc -:Qc)
 if:( module:Mc query:Qc iterator:I)
 if:( iterator:I value:R next:_).
 
@@ -1528,5 +1528,9 @@ a X :- b X.
 ]
 query:["a B?] result:R ).
 
-module:[	mParser275] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+then:( test:( parseQueryResult:R )) 
+if:( create:module result:M )
+if:( parse:["a B?] inModule:M -:R ).
+
+module:[	mParser276] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
