@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=38590
-mParser276:2148A3C17554C8F7E9473C154B067948
+Application/vnd.squl1 ModuleExport size=39701
+mParser279:741599D9FD6A234C88C0A88F3C63B3FF
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -979,7 +979,8 @@ if:( variableMapping:( +:V -:_ ) findOrAddMapping:( :["X] to:[\X] ) ).
 then:( test:variableMapping2 )
 if:( create:variableMapping result:V1 )
 if:( variableMapping:( +:V1 -:V2 ) findOrAddMapping:( :["X] to:X ) )
-if:( variableMapping:( +:V2 -:_ ) findOrAddMapping:( :["X] to:X ) ).
+if:( variableMapping:( +:V2 -:_ ) findOrAddMapping:( :["X] to:Y ) )
+if:( equal:X with:Y ).
 
 :[" softStatement:module:variableMapping:hardened: - will convert, but not populate, a soft statement component to a hard statement component. ].
 
@@ -1059,6 +1060,40 @@ if:( softStatement: ( h:(atom:["a]) emnut:(h:(atom:["hello]) emnut:empty ) )
 	module:( +:M1 -:M2 ) 
 	variableMapping:(+:V -:_)
 	hardened:H ).
+
+then:( test:( softStatement6:H) )
+if:( create:variableMapping result:V )
+if:( create:module result:M1 )
+if:( softStatement: ( h:(variable:["X]) emnut:(h:(variable:["X]) emnut:empty ) )
+	module:( +:M1 -:_ ) 
+	variableMapping:(+:V -:_)
+	hardened:H )
+if:( statement:H index:[+1] value:CompareMe )
+if:( statement:H index:[+2] value:CompareMe ).
+
+then:( test:( softStatement7:H) )
+if:( create:variableMapping result:V )
+if:( create:module result:M1 )
+if:( softStatement: ( h:(atom:["a]) emnut:(h:(atom:["a]) emnut:empty ) )
+	module:( +:M1 -:_ ) 
+	variableMapping:(+:V -:_)
+	hardened:H )
+if:( statement:H index:[+1] value:CompareMe )
+if:( statement:H index:[+2] value:CompareMe ).
+
+then:( test:( softStatement8:H) )
+if:( create:variableMapping result:V )
+if:( create:module result:M1 )
+if:( softStatement: ( h:(atom:["a]) emnut:empty ) 
+	module:( +:M1 -:_ ) 
+	variableMapping:(+:V -:_)
+	hardened:H )
+if:( softStatement: ( h:(atom:["a]) emnut:empty ) 
+	module:( +:M1 -:_ ) 
+	variableMapping:(+:V -:_)
+	hardened:H2 )
+if:( statement:H signature:Sig )
+if:( statement:H2 index:[+2] signature:Sig ).
 
 then:( module:( +:M1 -:M2 ) findOrCreateAtom:A result:Atom )
 if:( module:M1 simpleQuery:( metadata:( atom:[\Any] source:A ) ) numResults:[+0] )
@@ -1532,5 +1567,5 @@ then:( test:( parseQueryResult:R ))
 if:( create:module result:M )
 if:( parse:["a B?] inModule:M -:R ).
 
-module:[	mParser276] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser279] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
