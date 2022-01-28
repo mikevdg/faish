@@ -1,5 +1,5 @@
-Application/vnd.squl1 ModuleExport size=39701
-mParser279:741599D9FD6A234C88C0A88F3C63B3FF
+Application/vnd.squl1 ModuleExport size=39990
+mParser280:F9141D7A7DA744725A90B969AC7450CE
 mBase65:A4791430600148AF45B326E13D8512EE
 --
 module:[	mCompilermanuallyparsed1] metadata:( description:["
@@ -1085,23 +1085,23 @@ then:( test:( softStatement8:H) )
 if:( create:variableMapping result:V )
 if:( create:module result:M1 )
 if:( softStatement: ( h:(atom:["a]) emnut:empty ) 
-	module:( +:M1 -:_ ) 
+	module:( +:M1 -:M2 ) 
 	variableMapping:(+:V -:_)
 	hardened:H )
 if:( softStatement: ( h:(atom:["a]) emnut:empty ) 
-	module:( +:M1 -:_ ) 
+	module:( +:M2 -:_ ) 
 	variableMapping:(+:V -:_)
 	hardened:H2 )
 if:( statement:H signature:Sig )
-if:( statement:H2 index:[+2] signature:Sig ).
+if:( statement:H2 signature:Sig ).
 
 then:( module:( +:M1 -:M2 ) findOrCreateAtom:A result:Atom )
 if:( module:M1 simpleQuery:( metadata:( atom:[\Any] source:A ) ) numResults:[+0] )
 if:( create:atom result:Atom )
 if:( module:M1 add:( metadata:( atom:Atom source:A ) ) result:M2 ).
 
-then:( module:( +:M1 -:M2 ) findOrCreateAtom:A result:Atom )
-if:( module:M1 query:( metadata:( atom:[\Any] source:A ) ) iterator:It )
+then:( module:( +:M -:M ) findOrCreateAtom:A result:Atom )
+if:( module:M query:( metadata:( atom:[\Any] source:A ) ) iterator:It )
 if:( iterator:It value:( metadata:( atom:Atom source:A ) ) next:_ ).
 
 :["Soft signature handling ].
@@ -1114,8 +1114,8 @@ if:( cn:Soft size:Arity )
 if:( create:statementSignature module:M1 arity:Arity result:Signature)
 if:( module:M1 add:( metadata:( signature:Signature softSignature:Soft ) ) result:M2 ).
 
-then:( module:(+:M1 -:M2) findOrCreateSignatureFrom:Soft  result:Signature )
-if:( module:M1 simpleQueryUnified:(metadata:( signature:[\X] softSignature:Soft )) iterator:Itr )
+then:( module:(+:M -:M) findOrCreateSignatureFrom:Soft  result:Signature )
+if:( module:M simpleQueryUnified:(metadata:( signature:[\X] softSignature:Soft )) iterator:Itr )
 if:( iterator:Itr value:( metadata:( signature:Signature softSignature:_ ) ) next:_).
 
 clauses:empty toSoftSignature:empty.
@@ -1174,6 +1174,12 @@ if:( module:(+:M2 -:_) findOrCreateSignatureFrom:( h:( atom:["a] ) emnut:empty )
 then:( test:( findSignature3:S ) )
 if:( create:module result:M )
 if:( module:(+:M -:M2) findOrCreateSignatureFrom:(h:(atom:["a]) emnut:(h:(atom:b) emnut:empty)) result:S ).
+
+then:( test:( findSignature4:S ) )
+if:( create:module result:M )
+if:( module:(+:M -:M2) findOrCreateSignatureFrom:(h:(atom:["a]) emnut:(h:(atom:b) emnut:empty)) result:S )
+if:( module:(+:M2 -:_) findOrCreateSignatureFrom:(h:(atom:["a]) emnut:(h:(atom:b) emnut:empty)) result:S2 )
+if:( equal:S with:S2 ).
 
 :["TODO clauses:C statement:S populatedStatement:Result 
 
@@ -1567,5 +1573,5 @@ then:( test:( parseQueryResult:R ))
 if:( create:module result:M )
 if:( parse:["a B?] inModule:M -:R ).
 
-module:[	mParser279] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
+module:[	mParser280] metadata:( importModule:[	mBase65] name:["Base] uri:unknown ).
 
