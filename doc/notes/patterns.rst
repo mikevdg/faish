@@ -86,12 +86,6 @@ TODO: Can we use >: instead of result:? -->:R ^:R
 
 then-if statements should be ordered top to bottom in the usual order they would be evaluated in.
 
-Mutating things
--------------------------
-
-::
-    thisChanges:( +:Before -:After ).
-
 
 Naming of Variables and Statements
 ------------------------------
@@ -139,3 +133,69 @@ ifSomething:Foo :-
 
 elseSomething:foo :-
     noResults:( inner:Foo ).
+
+Implication: The :- symbol is the logical implication. If you have:
+
+    a :- b.
+
+If the whole statement is true (i.e. it is declared in a module), then a cannot be false if b is true. 
+
+If the statement appears inside another, then the semantics changes. It can resolve to true or false. 
+If b is true and a is false, then the result is false. When the interpreter determines if an implication 
+is true or not, it can first evaluate a. If a is false, then it needs to evaluate b to determine if the 
+whole statement is true or false. If a is true, b can be ignored. 
+
+If a is true, b is ignored and the statement is true.
+If a is false, b is evaluated. If b is true, the statement is false.
+
+Recall that ( a :- b ) is ( a ; not b ).
+
+
+
+Mutable variables
+-------------------------
+
+Mutable variables can be done like this:
+
+    :: declare [ (type A ) -> (type A) ] (type mutable).
+    ( A1 -> A2 ),
+
+This clause can be matched with a single variable:
+
+    addOne MutableInt :- 
+        MutableInt = ( Int1 -> Int2 ), 
+        Int2 = Int1 + [+1].
+
+In a complex statement, a variable will be mutated several times, meaning that in the statement you 
+have (A1 -> A2), (A2 -> A3) and so forth.
+
+A custom literal can be created to make managing this easier: [mA] is a mutable A, with smart variable renaming 
+for the entire statement.
+
+
+Higher Order Functions 
+----------------------
+
+You can declare a "function" as ( Args | Impl ), e.g. ( A B | plusOne A B ). To invoke the "function":
+
+    invoke (A B | Fn) :-
+        Fn.
+
+Here, A and B are found inside Fn somewhere.
+
+For example, map:
+
+    :: declare (type mutable (type collection A) (type collection  B)) 
+        map (function A B)).
+    ( [= H|=Emnut ] -> [=B|=Okluz] )
+    map 
+    ( (H->B) | Fn ) 
+    :-
+        Fn,
+        (Emnut -> Okluz) map Fn.
+
+Usage example:
+
+    plusOne (X -> [=X+1]).
+    X = [ 1 2 3 ] map ( (A->B) | plusOne (A->B ) ).   
+
