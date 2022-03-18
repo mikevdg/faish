@@ -344,7 +344,9 @@ Any variables in Query need to be unified before Query will be performed. This w
 
 Here, the built-in will not perform the query until a value for A is found. The query is then performed and the iterator will iterate over statements containing possible values for B.
 
-You can also pass a statement literal to (module: query: iterator:) as a query. 
+(module:query:iterator:) will only return fully unified statements through the iterator. It will not give you any statements from the module that contain variables.
+
+(XXX deprecate this:) You can also pass a statement literal to (module: query: iterator:) as a query. 
 
 You can use the following built-in on the iterator to fetch results::
 
@@ -355,14 +357,14 @@ You can use the following built-in on the iterator to fetch results::
 
 To find the next result, you need to use this built-in again on NextIterator to find the next result, and so forth. If the iterator runs out of results, then (iterator: value: next:) will fail, but (iteratorIsExhausted:) will instead succeed.
 
-Note that these iterators will not filter non-unique results. The results are fetched lazily; the query is not performed until the iterator is queried for a result. In this way, no depth, step or time limits are required.
+Note that these iterators will not filter non-unique results. The results are fetched lazily; the query is not performed until the iterator is queried for a result. In this way, no depth, step or time limits are required (XXX not actually true).
 
-"Simple queries" can be performed by using::
+A "Simple query" only returns immediate matches and does not perform any deduction. "Simple queries" can be performed by using::
 
         module:Module simpleQueryUnified:Query iterator:Iterator.
 		Perform the given query simply, and return all fully-unified results.
 	module:Module simpleQueryUnunified:Query iterator:Iterator.
-		Perform the given query simply, and return all results, even those with variables.
+		Perform the given query simply, and return all results, even those with variables. Variables are converted to variable literals.
 
 "Fully unified" means that all variables in a statement have been replaced with values. A "simple query" is one that only finds matching statements; it does not explore clauses of then-if statements.
 
@@ -395,12 +397,12 @@ The limits used are the same as limits used in the GUI:
 
 To get all values in a module, you can use a variable as the query::
 
-	module:M simpleQueryUnunified:AllResults iterator:Iterator.
+	module:M simpleQueryUnunified:[\AllResults] iterator:Iterator.
 
 For example, to copy a module::
 
 	then:( module:M copied:Mcopy )
-	if:( module:M simpleQueryUnunified:All iterator:It )
+	if:( module:M simpleQueryUnunified:[\All] iterator:It )
 	if:( addAll:It toModule:Mcopy ).
 	
 	then:( addAll:Done toModule:Module )
@@ -411,7 +413,7 @@ For example, to copy a module::
 	if:( module:Mcopy add:Statement result:Mnext )
 	if:( addAll:ItNext toModule:Mnext result:Mdone ).
 
-	-- Allow the use of multiple CPUs, if available:
+	-- Allow the use of multiple CPU cores, if available:
 	then:( addAll:It toModule:Mcopy result:Mdone )
 	if:( iterator:It fork:It1 fork:It2 )
 	if:( addAll:It1 toModule:Mcopy result:M1 )
