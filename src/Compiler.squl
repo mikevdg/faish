@@ -1,0 +1,65 @@
+:: [ compile (type query) -> (type assembly) ].
+:: [ (type statement) in (type module) ] (type query).
+
+compile Q -> Assembly :-
+    create list Acc,
+    compile unificationNode Q (Acc1->Acc2),
+    compileToLLVM Acc2 -> Ir,
+    compileToAssembly Ir Assembly.
+
+:: [ compile (type node) (type query) (type mutable (type list nodeFunction)) -> (type llvmIr) ].
+:: [ deductionNode ] (type node).
+
+compile unificationNode (Q in M) -> (Acc1 -> Acc2) :-
+    create function unify Q -> F1,
+    addAllVariables Q (F1 -> F2),
+    create moduleIterator (Q in M) -> Iter,
+    addAllMatches (Iter->done) (F2 -> F3),
+    (Acc1->Acc2) add F3.
+
+:: [ moduleIterator (type module) (type statement) (type integer) ] 
+    (type moduleIterator).
+:: [ done] (type done).
+
+:: [ addAllMatches (type either moduleIterator done) (type mutable function) ].
+addAllMatches (Iter -> done) (F -> F) :-
+    (Iter -> _) next -> done.
+
+:: todo ["Needs a module and query].
+addAllMatches (Iter1 -> Iter2)  
+    ([ F1] 
+        -> 
+     [ F1 |= (if MatchStatement DeductionStatement) 
+:-
+    (Iter1 -> Iter2) next -> Statement,
+    codeFor matches (Q in M) Statement MatchStatement,  - TODO: needs variable bindings
+    codeFor callDeduction (Q in M) DeductionStatement.
+
+:: todo ["Need parent state. Which clause are we deducting here? ].
+compile deductionNode (Q in M) (Acc1 -> Acc2) :-
+    create function deductionNode [ F1],
+    codeFor callUnification (Q in M) UnificationStatement,
+    F2 = [ F1 |= invoke UnificationStatement ],
+    (Acc1 -> Acc2) add F2.
+
+[" NodeFunctions.
+
+A list of these exists so that we can detect recursion in a program and then add recursive function 
+calls as necessary.
+
+].
+
+:: [ nodeFunction unification (type query) (type list statement) ] 
+    (type nodeFunction).
+
+[" The int is the clause index. ].
+:: [ nodeFunction deduction (type query) (type int) ]
+    (type nodeFunction). 
+
+[" LLVM IR ].
+:: [ function (type string) (type list variable) (type functionStatement) ]  (type llvmFunction).
+:: [ if (type functionStatement) (type functionStatement) ] (type functionStatement).
+:: [ while (type functionStatement) (type functionStatement) ] (type functionStatement).
+:: [ assign (type variable) (type functionStatement) ] (type functionStatement).
+:: [ call (type string) ] (type functionStatement).
+etc.
