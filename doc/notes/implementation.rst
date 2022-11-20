@@ -116,11 +116,17 @@ Blocks are 4kb in size, and consists of 256 64-bit words::
 
 The address space is 256. The Header and InPointers address space is re-used for lambda and variables; the storage is used for the block header and InPointers.
 
-The number of InPointers and OutPointers are specified in the header.
+The number of InPointers and OutPointers are specified in the header. XXX or in block metadata which is stored elsewhere.
+
+The VM can differentiate between pointers and OutPointers (FarRefs) by having all the OutPointers at the end of the block and keep the boundary in the block metadata.
+
+XXX InPointers don't need to be included in the block. Each InPointer also has a (large) backreference list.
 
 
 Dynamically typed statement storage
 -----------------------------------
+
+XXX statically typed statement storage removes the need for headers. However, we still need some dynamic typing to implement algebraic types.
 
 Statements can be stored as dynamically typed block entries, and the compiler can do the static type analysis stuff later.
 
@@ -229,12 +235,16 @@ If a statement has more than 5 variables, various implementation options are ava
 
 * Or, a statement can be an array (possibly promotable if you want to go down the path of crazy) or a linked list.
 
+xxx
 -----------------
 
 
 Each entry takes 64 bits. Many of these types can sprawl over several words.
 
 TODO: how do we determine between statements and farrefs? Or, anything and a farref?
+
+Answer: farrefs can be bunched together at the end of the block address space, and block metadata can describe where that boundary is.
+
 	- integers, floats, module references, variable literals should be copied instead.
 	- small arrays could be copied. Maybe?
 	- big arrays should have their handles copied.
@@ -243,7 +253,7 @@ TODO: how do we determine between statements and farrefs? Or, anything and a far
 TODO: how do we determine between an integer and a big integer?
 	- We don't have primitive big integers? Overflows just fail. We implement them in Squl?
 	- We add them as a primitive type. This will cause type explosion with all multi-integer operations.
-	- 
+	- We have a bit flag in the integer.
 
 TODO: How do we compile code that uses integer arithmetic? Do we continuously check for overflows?
 
@@ -863,6 +873,8 @@ Remote blocks
 
 Blocks might be located on a remote host. This VM is designed to be run on a computer cluster using the MPI message sending API to communicate between nodes. 
 
+Potentially, this VM could also be designed to work publicly across the Internet and connect to untrusted high-latency nodes.
+
 The block ID address space is split up on each host. The bottom half of the address space is the mmap() file containing local blocks. The top half of the address space is split up, allocating some to each remote host that we need to have communication with.
 
 When a block from a remote host needs to be accessed, there are two ways this can be achieved. We can either move the block to this local host, which entails moving the block into our local address space and using the backreference list to update all FarRefs to point to us. Or, we can just make a local replica of the remote block which involves making a copy of the block in the upper address space and getting the block manager to make a note that any FarRefs actual refer to a foreign address space.
@@ -872,6 +884,40 @@ If a local replica of a remote block is made, the FarRefs in that block need to 
 When FarRefs to remote blocks are made, a message needs to be sent to the remote host to make it add a remote reference to the backreference lists for the target object. I'm not sure how this would be done - either backreference entries need to be able to refer to a remote host, or a block ID in the upper address space needs to be designated on the remote host to refer to the originating host.
 
 All writes to the module's log need to be broadcast to all participating hosts. They can then individually decide what to do with those changes.
+
+Alternatively, FarRefs (OutPointers) could have the following structure:
+
+    [ host ][ block address ][ InPointer # ]
+    
+Where 
+* host is a few bytes to uniquely identify that remote host.
+* The block address uniquely identifies that block on that host.
+* The InPointer address is a pointer to an InPointer at that block. This is 8 bits or fewer.
+
+This scheme allows FarRefs to be migrated to other hosts without modification.
+
+If we use 26 bits for the host, 32 bits for the block address and 6 bits for InPointers, then we could address a theoretical total of 67 million hosts, each host serving 17 tebibyte VMs. 
+
+If we use 39 bits for the host, 19 bits for the block address and 6 bits for InPointers, then we could address a theoretical total of 549 billion hosts, each host serving 2 gibibyte VMs. Multiple hosts could coexist on the same computer.
+
+If we pushed the host out to a different word, then we have what seems to be an inexhaustable address space. Several FarRefs would point to the same host, meaning that the overhead is mitigated to some degree. 
+
+A server can potentially host multiple hosts. Perhaps the host could also be a virtual host used for referring to blocks that are replicated by a replication service.
+
+Fast-copying remote blocks
+---------------------------
+
+If blocks do not need to be modifed when moving from one host to another, then we can fast-copy that block. If that block can arrive from an untrusted host and be used, then we have an extremely fast communication protocol. Fast-copying means that little CPU is consumed with integrating that block into the VM. Hardware remote DMA could also be used on nodes that have this capability.
+
+For this to work, the structure of the block needs to be valid even if that block contains random garbage. Using a corrupted block will not harm a currently running VM. 
+
+Local references are all 8 bits and are always valid references within the context of a block. They physically cannot refer to data outside the block.
+
+FarRefs might be invalid. They might refer to an invalid host, invalid block or invalid InPointer. These need to be verified before use.
+
+BackReferences need to be thought about.
+
+Data within the block might be corrupt. Arrays might contain loops, making them in effect infinitely long. Unicode sequences might be poisoned. 
 
 
 Statement Arrays
