@@ -122,6 +122,73 @@ The VM can differentiate between pointers and OutPointers (FarRefs) by having al
 
 XXX InPointers don't need to be included in the block. Each InPointer also has a (large) backreference list.
 
+Statically typed storage
+--------------------------
+
+Stored elements can be:
+
+* References, 8 bits pointing to something else in the block.
+* Primitive types (bool, byte, int, float etc).
+* Deciders, N bits, determining what the following bit of data is.
+
+These are packed into 64-bit words. 
+
+All the other types the VM needs can be defined in terms of these elements. Type declarations, for example, are packed statements following the same schema. Module references are statements holding everything the VM needs to know about modules. Compiled code is a statement containing an array of bytes.
+
+A "decider" is a small number of bits that determine what the type of the rest of the data is. This occurs when there are multiple options for the type of an element. For example, an "Animal" might be a dog or a cat, so a leading bit would inform the VM that the following data is of format "dog" or format "cat". Deciders should be encoded using the fewest number of bits required, such that compiled code can have a jump table of every possible case to allow for throwing errors for invalid deciding values. Deciders are basically just enums.
+
+The VM then knows, starting from a root set of elements of precoded types, what the type of everything other binary bit in the storage is by following the type system. In this way, object headers are not required, and compiled code can make assumptions about the structure of data.
+
+TODO: we talk about arrays here, but there's no reason to only have ordered collections. There are many optimisations we could do if they were unordered (i.e. bags) such as packing together elements with predicatable data (e.g. multiple elements with the same value, or following a sequence). Indexing here is only efficient in a single packed block. Everything else is a search through a tree.
+
+An array can be implemented as (TODO: this is not quite right): 
+
+    :: [ array size (type byte) inline (type T) ] (type array (type T)).
+    :: [ array size (type byte) contents (type arrayContents T) ] (type array (type T)).
+    :: [ array size (type byte) tree (type treeNode T) ] (type array (type T)).
+    :: [ array size (type long) btree (type btree T) ] (type array (type T)).
+
+    [" TODO: what about packed integers, etc? I think these need dynamically defining ].
+    :: [ arrayContents (type X) (type X) (type X) (type X) (type X) (type X) (type X) (type X) ] (type arrayContents X).
+    :: [ branchNode (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) ] (type treeNode T). 
+    :: [ leafNode (type X) (type X) (type X) (type X) (type X) (type X) (type X) (type X) ] (type treeNode X).
+    :: [ empty ] (type treeNode _).
+
+This would be packed by the compiler as: 
+
+    Decider   Size      Contents/b-tree
+    "00"      3 bits    <packed contents if they fit into 59 bits)
+    "01"      3 bits    8 bits      (51 bits unused)
+    "10"      8 bits    8 bits      (46 bits unused)
+    "11"      8 bit ref (...maybe pack the BTree type here?)
+
+The different promotable types of array here are:
+
+"00": The array contents fit into 48 bits, so we pack them inline.
+"01": The array contents fit into a 64 bit word, so "contents" is a reference to that word.
+"10": The array is a tree structure in blocks. "contents" points to branch nodes which point to either branch nodes or leaf nodes.
+"11": The array is big enough to make a BTree. The size points to a 64-bit integer. The b-tree reference contains pointers to blocks.
+
+(It seems that "01" isn't worthwhile having!).
+
+We can derive the type of the array. If we have a reference to the array, we kind of know it's type:
+
+    :: [ personArray (type array (type person)) ].   
+    :: [ customer name (type string) address (type string) ] (type person).
+    :: [ employee name (type string) reportsTo (type employee) ] (type person).
+
+Here, the array contains elements that are either a customer or an employee. This can be implemented either by including a deciding bit on each reference, or including the deciding bit on the data itself. It seems to be more pragmatic to include the deciding bit on the persons themselves. Anything else that uses this type can only refer to a "person", so any reference in this system could be to either a customer or an employee.
+
+    Bit packing of (type person):
+    <decider "0"> <name, 8 bits> <address, 8 bits>
+    <decider "1"> <name, 8 bits> <reportsTo, 8 bits>
+    
+There are spare bits here, so if the name is 5 bytes or fewer then they can be packed into the same word. Alternatively, in a packed array, these entries are both 17 bits so we can pack three of them into each word.
+    
+The packing procedure needs to fit structures into 64-bit words. Some statements, such as those with more than 8 positions, might need to be split by adding references in them pointing to other words containing more parts of the statement. Some statements might have left over space that other statements can be inlined into. Statements with hierarchies might be able to be flattened.
+
+
+
 
 Dynamically typed statement storage
 -----------------------------------
