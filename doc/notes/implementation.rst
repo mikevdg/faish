@@ -69,13 +69,37 @@ Statically typed storage
 
 Each word in a standard block is packed data. The structure of this packed data is determined by the typing system. 
 
+Given an example type declaration::
+
+    :: [ person age (type integer) name (type string) ] (type person).
+    
+An integer is 32 bits, and a string can have any length. This statement can be packed into a 64-bit word as::
+
+    [ age, 32 bits ][ name, 8 bit reference ][ 24 bits unused ]
+    
+Then name would be a string, which (for the sake of this example) is a linked list of 7-character sections, packed as::
+
+    [ 7 characters, 8 bits each ][ next, 8 bit reference ]
+
+(An actual implementation of a string might be very different).
+
+Now if we have the following type declaration:: 
+
+    :: [ father (type person) of (type person) ].
+    
+This can be packed as, with both references pointing to persons:
+
+    [ 8 bit reference ][ 8 bit reference ] [ 56 bits unused ].
+
+When we want to extract data, we know the type of each word based on the pointer to that word. Every pointer in the VM has a type in this manner.
+
 Stored elements can be:
 
 * References, 8 bits pointing to something else in the block.
 * Primitive types (bool, byte, int, float etc).
 * Deciders, N bits, determining what the following bit of data is.
 
-These are packed into 64-bit words. 
+These are packed into 64-bit words.
 
 All the other types the VM needs can be defined in terms of these elements. Type declarations, for example, are packed statements following the same schema. Module references are statements holding everything the VM needs to know about modules. Compiled code is a statement containing an array of bytes.
 
@@ -83,9 +107,25 @@ A "decider" is a small number of bits that determine what the type of the rest o
 
 The VM then knows, starting from a root set of elements of precoded types, what the type of everything other binary bit in the storage is by following the type system. In this way, object headers are not required, and compiled code can make assumptions about the structure of data.
 
+Advanced word packing
+---------------------
+
+There is scope for many optimisations:
+
+* To manage long statements with lots of arguments, statements can be split to parts that each fit into 64-bits.
+* Nested statements can be flattened.
+* Statements can be given multiple different packings. For example, if a statements packs into 48 bits but not 64 bits, then multiple different packings can be created to pack four of those statements across three words.
+* Each packed section could be either inline data or a reference.
+
+
+Arrays
+-------
+
+Arrays begin life as statements or data structures inside a block. Once they have grown to a particular size threshold, they are promoted to B-Trees. 
+
 TODO: we talk about arrays here, but there's no reason to only have ordered collections. There are many optimisations we could do if they were unordered (i.e. bags) such as packing together elements with predicatable data (e.g. multiple elements with the same value, or following a sequence). Indexing here is only efficient in a single packed block. Everything else is a search through a tree.
 
-An array can be implemented as (TODO: this is not quite right): 
+An array can be implemented as:: 
 
     :: [ array size (type byte) inline (type T) ] (type array (type T)).
     :: [ array size (type byte) contents (type arrayContents T) ] (type array (type T)).
@@ -118,6 +158,7 @@ The different promotable types of array here are:
 We can derive the type of the array. If we have a reference to the array, we kind of know it's type:
 
     :: [ personArray (type array (type person)) ].   
+    
     :: [ customer name (type string) address (type string) ] (type person).
     :: [ employee name (type string) reportsTo (type employee) ] (type person).
 
@@ -132,179 +173,68 @@ There are spare bits here, so if the name is 5 bytes or fewer then they can be p
 The packing procedure needs to fit structures into 64-bit words. Some statements, such as those with more than 8 positions, might need to be split by adding references in them pointing to other words containing more parts of the statement. Some statements might have left over space that other statements can be inlined into. Statements with hierarchies might be able to be flattened.
 
 
-
 Modules
 -------------
 
-Statements can only exist inside a module. 
+A module is an array of statements. A module might have a name. There are different types of modules::
+
+* Standard modules. Statements are permanent until removed. Statements are ordered.
+* Cache modules. Statements might be forgotten from these at any stage. 
+
+Statements in a module are usually ordered for the user's benefit, but ordering is not required when compiling queries. 
 
 The VM has a root module in which it contains metadata about other modules. Module literals physically contain pointers to other modules - when the last module literal pointing to a module is garbage collected, so is its target module. The root module contains, among many other things, references to modules that each user has access to. Perhaps it contains a list of user's "desktop" modules, which in turn contain references to the modules each user has access to.
 
-Modules are implemented using indexes. An index is an array of statements. Statements are added to and removed from these indexes, and the contents of a module can be listed by iterating over the index. Modules consist of:
+Modules are implemented using arrays of statements. Statements are added to and removed from these arrays, and the contents of a module can be listed by iterating over the array. As such, modules begin life as a statement containing an array within a block, and these will be automatically promoted to b-trees as the module grows.
 
-* A primary index of it's contents.
-* Secondary indexes to improve performance.
-* A query module containing queries. Each query is also a module containing results found so far.
-* Optional source code.
-* A compiled version of the module.
+XXX if you have an array containing entries for each type of statement, then this makes a lot of extra overhead when there is only one entry in each array.
 
-An index starts as an array in a block, and can be promoted to a b-tree as it grows.
+A module would have a master array. This master array would contain an array for each type of statement in this module ::
 
-Most of these can be stored in a master module that contains information about a module, e.g. (the tab character is currently used to make module literals)::
+    :: [ module (type module) type (type declaration T) statements (type array T).
+    
+e.g. 
 
-A compiled module is a version of a module which has been optimised: statements have been reshuffled and, perhaps, compiled machine code is included somehow. This idea hasn't been investigated yet.::
+    father.
+    module [	myModule] type (:: [ father (type person) of (type person) ]) statements [
+        father alfred of bob.
+	father bob of charles.
+    ].
 
-	(in the master module)
-	module:[	1234] sourceCode:[	123s].
-	module:[	1234] queries:[	123q].
-	module:[	1234] compiled:[	123c].
-	module:[	1234] statementDefinition:[\ a:_ b:_] index:[	123ab].
+    grandfather.
+    module [	myModule] type (:: [ (XXX wrong) grandfather (type person) of (type person)) statements [
+        grandfather A of C :-
+	    father A of B,
+	    father B of C 
+    ].
 
-Secondary indexes would be referenced directly from statement premises that would use them, but would also be useful to store here for compilation.
+("~" means that we're omitting details in this example ).
 
-The address space is global across all storage on the cluster. Each module is an index that dwells in this global address space.
+XXX this became complicated.
 
-Modules can look like this::
+This would be packed as::
 
-    Log  -->   Bloom filter  -->   Indexes  -->   Blocks containing statements.
+    father.
+    1 [ module->~ ][ declaration->~ ][ statements->2 ].
+    2 [ ->3 ][ ->4 ]    // the array of all (:: [father (type person) of (type person) ] ).
+    3 [ alfred->~ ][ bob->~ ].
+    4 [ bob->~ ][ charles->~ ].
+    
+    grandfather.
+    5 [ module->~ ][ declaration->~ ][ statements->6 ].
+    6 [ ->7 ]           // the array of all 
+    
 
-* The log is a (hash table? array?) containing entries for recent additions and deletions to the module. It also allows a base module to have multiple slightly-varying versions. Occasionally it is flushed and changes written to the indexes.
 
-* The bloom filter is an optional optimisation over very large modules. It determines if a statement possibly exists in this module, or if the statement definitely does not exist in this module. It's a binary hash table over the statements with ignored collisions. It prevents unnecessary block reads.
+Advanced modules
+------------------
 
-* The indexes contain the master index which holds the module together, and a bunch of other indexes that are referenced directly by if-clauses. Indexes may also contain packed blocks.
+XXX Bloom filters
 
-* Blocks containing statements contain the module data. 
-
-A module reference is a tuple of (index, write log, bloom filter) where the index is a pointer to an array, the write log is another array of insertions and removals, and the bloom filter is a boolean array.
-
-Within a block, a module literal looks much like a statement, but is given the type of a module rather than a statement. It has the format (subject to change)::
-
-	primaryIndex:P
-	secondaryIndexes:S
-	writeLog:L
-	bloomFilter:B
-	queries:Q
-	cache:C
-	compiled:Cm.
-
-P and S are arrays of statements. Q is a list of (query:Q results:R) tuples. C is an array (maybe?) and Cm is ... perhaps Q should contain compiled queries.
+XXX write logs with new inserts/deletes/updates, to allow for rollbacks and versioning.
 
 
 Versioning Modules
-------------------
-
-(TODO: not sure how best to do this)
-
-(TODO: it might be possible for the compiler to avoid this problem entirely??? Perhaps the compiler could keep track of what would, hypothetically, be (or not be) in a module at each stack frame?)
-
-Modules need to have an efficient way to keep old versions if backtracking or rollback occurs.
-
-The obvious approach is to keep a log with the module. The log contains recent additions and removals from that module and needs to be accessed first for every read operation. Occasionally it is "committed" to the module.
-
-Another approach is to make the changes to the module inline and keep a "rollback log" of the changes that are necessary to restore that module to an older version.
-
-The code itself executes deterministically, so it might be possible to use that as a rollback log.
-
-Another approach is to make parts of the module copy-on-write. This is reasonable for small modules of a few bytes. 
-
-If it can be proven that backtracking will not occur, then we do not need to track the old states of the module.
-
-A VM optimisation is to allow multiple threads to modify the module inline, with mutexes to protect from race conditions and with guarantees that no backtracking will occur.
-
-
-
-
-
-
-Dynamically typed statement storage
------------------------------------
-
-XXX statically typed statement storage removes the need for headers. However, we still need some dynamic typing to implement algebraic types.
-
-Statements can be stored as dynamically typed block entries, and the compiler can do the static type analysis stuff later.
-
-Every block entry has the following format::
-
-    [type][...contents...]
-
-Where type is one of:
-
-* Naked statement component.
-* Statement with variable bindings
-* Statement structure.
-* Statement structure with more than 5 arguments??? (implemented as array).
-* Signature
-* Integer
-* Float
-* Statement literal
-* Module reference
-* A variable? Possibly with a binding.
-
-* String (implemented as an array)
-* Boolean array
-* Inline 8-bit int array (also for strings)??
-* Integer array (8-bit / 16-bit / 32-bit / 64-bit; signed / unsigned)
-* Float array (8-bit / 16-bit / 32-bit / 64-bit)
-* Statement array
-* Packed statement array
-* Compiled code (implemented as an array)
-* Big Integer (implemented as an array)
-* InPointer backreferences (implemented as an array)
-* All of the above array types as btrees.
-
-
-A statement with variable bindings has the form (where [structure] refers to a structure. [var1] through [var6] are variable bindings for variables 1 through 6, pointing to other statements::
-
-    [type=statement] [structure] [num vars] [var1] [var2] [var3] [var4] [var5] 
-    ... [var6] [var7] [var8] [var9] [var10] [var11] [var12] [var13]
-    ... etc
-
-A statement structure refers to a signature and up to 5 values to populate it's signature. The unbound variables refer to variables deep inside the statement::
-
-    [type=statement structure] [sig] [num args] [arg1] [arg2] [arg3] [arg4] [arg5] 
-    ... [arg6] [arg7] [arg8] [arg9] [arg10] [arg11] [arg12] [arg13]
-    ... etc
-
-TODO: structures may not be needed. A compiler might convert them to structs on a call stack, manipulate that, then convert them back to this storage format on completion; it will made a copy of the whole statement regardless of any binding mechanism we might have.
-
-
-A statement signature has the format (where _ is a wasted byte). Arity can be from 0 (an atom) to 5::
-
-    [type=signature] [arity] _ _ _ _ _ _ 
-
-An atom would be a statement with an arity of 0.
-
-An integer and float have the format:
-
-    [type=integer] _ _ _ [32-bit integer]
-
-    [type=float] _ _ _ [32-bit float]
-
-A statement/atom/variable/literal literal is::
-
-    [type=statement literal] [ref] _ _ _ _ _ _
-
-A module reference is::
-
-    [type=module reference] [7 bytes of reference]
-
-A far ref is:
-
-    [type=far ref] [7 bytes of far ref]
-
-An array is (where the [array type] is one of the array types)::
-
-    [array type] [size] [6 bytes of array]
-    [8 more bytes of array]
-    [8 more bytes of array]
-    ...   
-
-If the array is larger than 254 bytes, then it needs to be promoted to a btree.
-
-A btree resembles a module reference::
-
-    [btree array type] [7-bytes of reference]
 
 
 Long statements
