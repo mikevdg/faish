@@ -5,18 +5,132 @@ This chapter describes a hypothetical implementation of a Squl VM. Code examples
 
 See http://gulik.pbworks.com/w/page/55126238/Faish%20implementation for the original design notes. They will all eventually be moved here.
 
-Desired Features
--------------
+The VM design here is a block-based VM. The "heap" is divided into 4 kilobyte blocks, which are also stored to disk and sent across a network. The choice of 4 kilobytes is to match the same size of a disk block or page in memory. 
 
-* Persistence to disk, block-by-block as needed.
+The following types of blocks are found in this VM:
 
-* Fancy garbage collection
+* Standard blocks containing small numbers of statements.
+* Packed blocks containing many of the same type of statements.
+* Packed blocks containing one pritive data type, such as booleans, integers or floats.
+* B-Tree branch nodes (implemented using packed blocks of block references).
+* Index blocks (implemented using packed blocks).
 
-* Compliation via LLVM device.
+Standard blocks are used to contain small numbers of statements. A standard block is made of 256 64-bit words, each addressable using 8 bit addresses. Each 64-bit word contains packed data. The packing of statements into 64-bit words is described in a later section.
 
-* Profiling statistics are kept.
+A packed block is used to contain a large number of statements or repeated data. A packed block is used as the leaf node of a BTree. Packed blocks are created when an array becomes too large to fit into a single block and is promoted to a B-Tree.
 
-* VM is deterministic for debugging.
+Block metadata is stored externally to the block. A block does not have it's own header field inside itself. 
+
+Blocks are stored in files. A reference to a block will contain it's location within that file. As blocks are a fixed 4k size, the least significant 12 bits of a block address can be stripped.
+
+The Block Manager
+--------------------
+
+The Block Manager is a component that is responsible for managing the location, type and status of blocks.
+
+Each block lives on a particular node. Each node is a process on the local or a remote computer. Each node has a memory-mapped (mmap) file. A block index is simply the location in that file at byte number (index * 4096). 
+
+The block manager manages:
+
+* The network address of each node.
+* Adding and removing nodes from the network.
+* Creating new blocks.
+* Initializing and managing garbage collection.
+* Locking and unlocking blocks for exclusive access.
+* Location of block replicas on other nodes.
+
+InPointers and OutPointers
+--------------------------
+
+A reference to a statement in the same block can be a direct 8-bit pointer. 
+
+A reference to a statement in another block uses a 64-bit "OutPointer". A local 8-bit pointer will point to an OutPointer. OutPointers are kept at the end of the block and block metadata stores the boundary marker between the 64-bit words containing data and the OutPointers.
+
+A standard block has the following structure::
+
+                 v InPointer boundary
+    [ InPointers | data |  OutPointers]
+                        ^ OutPointer boundary
+
+An OutPointer has the following structure::
+
+     39 bits   19 bits          6 bits
+    [  host  ][ block address ][ InPointer # ]
+    
+The host refers to block storage on a potentially remote computer. The "host" values are global across the network; an OutPointer retains its validness when moved to a remote host. 
+
+The block address is the address of that block at that host. This is the location of the block in the file, after multiplying by 4096. The size of 19 bits is chosen arbitrarily; it allows for a file size of 2GB for each file. Multiple hosts can be run on the same computer to expand past this limit.
+
+An "InPointer" is just a word in the block which may not be moved, as it is refered to by blocks across disk and across a network. These "InPointer" words are otherwise treated exactly the same as data. If garbage collection is to be implemented, then these InPointers form a root set for this block.
+
+
+Statically typed storage
+--------------------------
+
+Each word in a standard block is packed data. The structure of this packed data is determined by the typing system. 
+
+Stored elements can be:
+
+* References, 8 bits pointing to something else in the block.
+* Primitive types (bool, byte, int, float etc).
+* Deciders, N bits, determining what the following bit of data is.
+
+These are packed into 64-bit words. 
+
+All the other types the VM needs can be defined in terms of these elements. Type declarations, for example, are packed statements following the same schema. Module references are statements holding everything the VM needs to know about modules. Compiled code is a statement containing an array of bytes.
+
+A "decider" is a small number of bits that determine what the type of the rest of the data is. This occurs when there are multiple options for the type of an element. For example, an "Animal" might be a dog or a cat, so a leading bit would inform the VM that the following data is of format "dog" or format "cat". Deciders should be encoded using the fewest number of bits required, such that compiled code can have a jump table of every possible case to allow for throwing errors for invalid deciding values. Deciders are basically just enums.
+
+The VM then knows, starting from a root set of elements of precoded types, what the type of everything other binary bit in the storage is by following the type system. In this way, object headers are not required, and compiled code can make assumptions about the structure of data.
+
+TODO: we talk about arrays here, but there's no reason to only have ordered collections. There are many optimisations we could do if they were unordered (i.e. bags) such as packing together elements with predicatable data (e.g. multiple elements with the same value, or following a sequence). Indexing here is only efficient in a single packed block. Everything else is a search through a tree.
+
+An array can be implemented as (TODO: this is not quite right): 
+
+    :: [ array size (type byte) inline (type T) ] (type array (type T)).
+    :: [ array size (type byte) contents (type arrayContents T) ] (type array (type T)).
+    :: [ array size (type byte) tree (type treeNode T) ] (type array (type T)).
+    :: [ array size (type long) btree (type btree T) ] (type array (type T)).
+
+    [" TODO: what about packed integers, etc? I think these need dynamically defining ].
+    :: [ arrayContents (type X) (type X) (type X) (type X) (type X) (type X) (type X) (type X) ] (type arrayContents X).
+    :: [ branchNode (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) ] (type treeNode T). 
+    :: [ leafNode (type X) (type X) (type X) (type X) (type X) (type X) (type X) (type X) ] (type treeNode X).
+    :: [ empty ] (type treeNode _).
+
+This would be packed by the compiler as: 
+
+    Decider   Size      Contents/b-tree
+    "00"      3 bits    <packed contents if they fit into 59 bits)
+    "01"      3 bits    8 bits      (51 bits unused)
+    "10"      8 bits    8 bits      (46 bits unused)
+    "11"      8 bit ref (...maybe pack the BTree type here?)
+
+The different promotable types of array here are:
+
+"00": The array contents fit into 48 bits, so we pack them inline.
+"01": The array contents fit into a 64 bit word, so "contents" is a reference to that word.
+"10": The array is a tree structure in blocks. "contents" points to branch nodes which point to either branch nodes or leaf nodes.
+"11": The array is big enough to make a BTree. The size points to a 64-bit integer. The b-tree reference contains pointers to blocks.
+
+(It seems that "01" isn't worthwhile having!).
+
+We can derive the type of the array. If we have a reference to the array, we kind of know it's type:
+
+    :: [ personArray (type array (type person)) ].   
+    :: [ customer name (type string) address (type string) ] (type person).
+    :: [ employee name (type string) reportsTo (type employee) ] (type person).
+
+Here, the array contains elements that are either a customer or an employee. This can be implemented either by including a deciding bit on each reference, or including the deciding bit on the data itself. It seems to be more pragmatic to include the deciding bit on the persons themselves. Anything else that uses this type can only refer to a "person", so any reference in this system could be to either a customer or an employee.
+
+    Bit packing of (type person):
+    <decider "0"> <name, 8 bits> <address, 8 bits>
+    <decider "1"> <name, 8 bits> <reportsTo, 8 bits>
+    
+There are spare bits here, so if the name is 5 bytes or fewer then they can be packed into the same word. Alternatively, in a packed array, these entries are both 17 bits so we can pack three of them into each word.
+    
+The packing procedure needs to fit structures into 64-bit words. Some statements, such as those with more than 8 positions, might need to be split by adding references in them pointing to other words containing more parts of the statement. Some statements might have left over space that other statements can be inlined into. Statements with hierarchies might be able to be flattened.
+
 
 
 Modules
@@ -99,93 +213,6 @@ If it can be proven that backtracking will not occur, then we do not need to tra
 A VM optimisation is to allow multiple threads to modify the module inline, with mutexes to protect from race conditions and with guarantees that no backtracking will occur.
 
 
-Blocks
-------
-
-Blocks are 4kb in size, and consists of 256 64-bit words::
-
-    0 Header (and lambda)
-    1 InPointer (and variable 1)
-    2 InPointer (and variable 2)
-    ... more InPointers
-    n Block Entry
-    ... more Block Entries
-    255-m OutPointer
-    ... more OutPointers
-    255 OutPointer (the last one) 
-
-The address space is 256. The Header and InPointers address space is re-used for lambda and variables; the storage is used for the block header and InPointers.
-
-The number of InPointers and OutPointers are specified in the header. XXX or in block metadata which is stored elsewhere.
-
-The VM can differentiate between pointers and OutPointers (FarRefs) by having all the OutPointers at the end of the block and keep the boundary in the block metadata.
-
-XXX InPointers don't need to be included in the block. Each InPointer also has a (large) backreference list.
-
-Statically typed storage
---------------------------
-
-Stored elements can be:
-
-* References, 8 bits pointing to something else in the block.
-* Primitive types (bool, byte, int, float etc).
-* Deciders, N bits, determining what the following bit of data is.
-
-These are packed into 64-bit words. 
-
-All the other types the VM needs can be defined in terms of these elements. Type declarations, for example, are packed statements following the same schema. Module references are statements holding everything the VM needs to know about modules. Compiled code is a statement containing an array of bytes.
-
-A "decider" is a small number of bits that determine what the type of the rest of the data is. This occurs when there are multiple options for the type of an element. For example, an "Animal" might be a dog or a cat, so a leading bit would inform the VM that the following data is of format "dog" or format "cat". Deciders should be encoded using the fewest number of bits required, such that compiled code can have a jump table of every possible case to allow for throwing errors for invalid deciding values. Deciders are basically just enums.
-
-The VM then knows, starting from a root set of elements of precoded types, what the type of everything other binary bit in the storage is by following the type system. In this way, object headers are not required, and compiled code can make assumptions about the structure of data.
-
-TODO: we talk about arrays here, but there's no reason to only have ordered collections. There are many optimisations we could do if they were unordered (i.e. bags) such as packing together elements with predicatable data (e.g. multiple elements with the same value, or following a sequence). Indexing here is only efficient in a single packed block. Everything else is a search through a tree.
-
-An array can be implemented as (TODO: this is not quite right): 
-
-    :: [ array size (type byte) inline (type T) ] (type array (type T)).
-    :: [ array size (type byte) contents (type arrayContents T) ] (type array (type T)).
-    :: [ array size (type byte) tree (type treeNode T) ] (type array (type T)).
-    :: [ array size (type long) btree (type btree T) ] (type array (type T)).
-
-    [" TODO: what about packed integers, etc? I think these need dynamically defining ].
-    :: [ arrayContents (type X) (type X) (type X) (type X) (type X) (type X) (type X) (type X) ] (type arrayContents X).
-    :: [ branchNode (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) (type treeNode T) ] (type treeNode T). 
-    :: [ leafNode (type X) (type X) (type X) (type X) (type X) (type X) (type X) (type X) ] (type treeNode X).
-    :: [ empty ] (type treeNode _).
-
-This would be packed by the compiler as: 
-
-    Decider   Size      Contents/b-tree
-    "00"      3 bits    <packed contents if they fit into 59 bits)
-    "01"      3 bits    8 bits      (51 bits unused)
-    "10"      8 bits    8 bits      (46 bits unused)
-    "11"      8 bit ref (...maybe pack the BTree type here?)
-
-The different promotable types of array here are:
-
-"00": The array contents fit into 48 bits, so we pack them inline.
-"01": The array contents fit into a 64 bit word, so "contents" is a reference to that word.
-"10": The array is a tree structure in blocks. "contents" points to branch nodes which point to either branch nodes or leaf nodes.
-"11": The array is big enough to make a BTree. The size points to a 64-bit integer. The b-tree reference contains pointers to blocks.
-
-(It seems that "01" isn't worthwhile having!).
-
-We can derive the type of the array. If we have a reference to the array, we kind of know it's type:
-
-    :: [ personArray (type array (type person)) ].   
-    :: [ customer name (type string) address (type string) ] (type person).
-    :: [ employee name (type string) reportsTo (type employee) ] (type person).
-
-Here, the array contains elements that are either a customer or an employee. This can be implemented either by including a deciding bit on each reference, or including the deciding bit on the data itself. It seems to be more pragmatic to include the deciding bit on the persons themselves. Anything else that uses this type can only refer to a "person", so any reference in this system could be to either a customer or an employee.
-
-    Bit packing of (type person):
-    <decider "0"> <name, 8 bits> <address, 8 bits>
-    <decider "1"> <name, 8 bits> <reportsTo, 8 bits>
-    
-There are spare bits here, so if the name is 5 bytes or fewer then they can be packed into the same word. Alternatively, in a packed array, these entries are both 17 bits so we can pack three of them into each word.
-    
-The packing procedure needs to fit structures into 64-bit words. Some statements, such as those with more than 8 positions, might need to be split by adding references in them pointing to other words containing more parts of the statement. Some statements might have left over space that other statements can be inlined into. Statements with hierarchies might be able to be flattened.
 
 
 
@@ -225,7 +252,7 @@ Where type is one of:
 * Big Integer (implemented as an array)
 * InPointer backreferences (implemented as an array)
 * All of the above array types as btrees.
-* FarRef
+
 
 A statement with variable bindings has the form (where [structure] refers to a structure. [var1] through [var6] are variable bindings for variables 1 through 6, pointing to other statements::
 
@@ -293,455 +320,6 @@ Can become (internally):
 
 This allows for a statement to span across multiple blocks.
 
-Lots of variables
-----------------
-
-If a statement has more than 5 variables, various implementation options are available:
-
-* A statement can refer to more statements directly, with more variable bindings. The head of a statement tree are all variable bindings.
-
-* Or, a statement can be an array (possibly promotable if you want to go down the path of crazy) or a linked list.
-
-xxx
------------------
-
-
-Each entry takes 64 bits. Many of these types can sprawl over several words.
-
-TODO: how do we determine between statements and farrefs? Or, anything and a farref?
-
-Answer: farrefs can be bunched together at the end of the block address space, and block metadata can describe where that boundary is.
-
-	- integers, floats, module references, variable literals should be copied instead.
-	- small arrays could be copied. Maybe?
-	- big arrays should have their handles copied.
-	- That only leaves statements. We could declare that (c=255) or perhaps (a=255) to be a FarRef maybe?
-
-TODO: how do we determine between an integer and a big integer?
-	- We don't have primitive big integers? Overflows just fail. We implement them in Squl?
-	- We add them as a primitive type. This will cause type explosion with all multi-integer operations.
-	- We have a bit flag in the integer.
-
-TODO: How do we compile code that uses integer arithmetic? Do we continuously check for overflows?
-
-Statements have a number of if-clauses. The then-clause counts as a clause for the purposes of counting the clauses. Statements that are not then-if statements are defined as having 1 clause. Statements with 0 clauses are statement definitions or atoms.
-
-The entry at 0 has multiple uses. The data at that location is the block heading. The address space at 0 is used for lambda, and for the variable "_".
-
-The address space from 1 up to the (number of InPointers)/4 is used for both InPointers and variables. The data is used for InPointers; the address space is used for variables. InPointers are only two bytes each, and thus are packed four to each word. If more address space is needed for variables, the (number of InPointers) in the block header is increased by multiples of 4 and the InPointer values set to zero.
-
-Each array type is further broken down into small arrays that fit in the block, and big arrays that span several blocks.
-
-Statement definitions are statements with lambdas in all argument positions. We can add typing information to all lambdas.
-
-Statement definitions look like this (see below for details)::
-
-    254  a=2 c=0 0(int) 0(statement)	       -- h:<int> emnut:<statement>
-
-"254" is the entry index in the block. This is a word located at index 254.
-
-"a=2" means there are two arguments, both lambdas with typing information.
-
-"c=0" means there are no clauses, thus is a statement definition.
-
-"0(int)" is a lambda typed as an integer. The "(int)" would be a byte representing the type of integers.
-
-TODO: do we gain anything by adding typing information to all variables?
-
-
-
-Dynamic typing idea
---------------------
-
-This will probably not be implemented. These notes are just to record this idea.
-
-If we were to do dynamic typing, the type of each word would need to be determined just by looking at the word.
-
-If we steal some address space from signed integers, we can say that signed integers must start with 111 or 000, which reduces their values from 2^63 <= n < -2^63 to 2^60 <= n < -2^60.
-
-We can also steal some address space from floating point numbers. [64-bit] Floating point numbers have as their most significant bits a sign (0 or 1 for - and +), then an 11-bit exponent. We can steal several of these values.
-
-In this way, the resulting address space consists of valid integers and valid floating point numbers, meaning that once their type is determined, they can be used directly to do arithmetic. When stored again, we need to compare the most significant bits to make sure their type has not changed.
-
-The address space then has as most significant bits::
-
-    000 - Positive integer
-    001 - Float (positive large)
-    010 - Float (positive small)
-    011 - Object
-    100 - Object
-    101 - Float (negative large)
-    110 - Float (negative small)
-    111 - Negative integer
-
-(there may be mistakes, but I think I have it correct). Floating point exponents have unusual formats; binary 01111111 represents 0; 10000000 represents 1, with values going up and down from there using usual binary arithmetic. 
-
-The two prefixes 011 and 100 are now available to define other types.
-
-An expanded version allows for more address space stealing::
-
-    0000 - Positive integer
-    0001 - Positive integer (or object)
-    0010 - Object
-    0011 - Float (positive small)
-    0100 - Float (positive large)
-    0101 - Object
-    0110 - Object
-    0111 - Object
-    1000 - Object
-    1001 - Object
-    1010 - Object
-    1011 - Float (positive small)
-    1100 - Float (positive large)
-    1101 - Object
-    1110 - Negative integer (or object)
-    1111 - Negative integer
-
-This gives us 8 or 10 more object types. The object types remaining once integers and floats are taken out are:
-
-* Statement, definition or atom.
-* FarRef.
-* Arrays of:
-	- Boolean
-	- Integers (of different sorts)
-	- Floats (of different sorts)
-	- Statements
-	- Packed statements
-* Big integer
-* Module reference
-* Variable literal
-
-"Variable" does not need to be in this list as it can be determined by address space.
-
-The different types of integer are:
-
-* 8 bit signed
-* 8 bit unsigned (a byte array, or string)
-* 16 bit signed
-* 16 bit unsigned
-* 32 bit signed
-* 32 bit unsigned
-* 64 bit signed
-* 64 bit unsigned
-
-The different types of float are:
-
-* 32 bit
-* 64 bit
-
-Furthermore, each array has two variants: small and big.
-
-This gives us 6 basic types and 2 variants of 10 array types. We could split the address space up as::
-
-    0000 - Positive integer
-    0001 - Positive integer 
-    0010 - Statement
-    0011 - Float (positive small)
-    0100 - Float (positive large)
-    0101 - FarRef
-    0110 - Small array
-    0111 - Big array
-    1000 - Big integer
-    1001 - Module reference
-    1010 - Variable literal
-    1011 - Float (positive small)
-    1100 - Float (positive large)
-    1101 - 
-    1110 - Negative integer
-    1111 - Negative integer
-
-The next 4 bits of an array type (big or small) could be defined as::
-
-    0000 - 8 bit unsigned integer
-    0001 - 8 bit signed integer
-    0010 - 16 bit unsigned integer
-    0011 - 16 bit signed integer
-    0100 - 32 bit unsigned integer
-    0101 - 32 bit signed integer
-    0110 - 64 bit unsigned integer
-    0111 - 64 bit signed integer
-    1000 - Statements
-    1001 - Packed statements
-    1010 - Boolean arrays
-    1011 -    
-    1100 - 32-bit float
-    1101 - 64-bit float
-    1110 - 
-    1111 - 
-
-
-Statement Literals
---------------------
-
-Statement literals have the same format as a statement, complete with FarRef disambiguation. It can store only a variable to be a variable literal.
-
-
-	
-Flattening statements
---------------------
-
-Statements have a tree structure. For example::
-
-	a:( b:( c:d ) ) d:e.
-
-is::
-
- 		      b: - c: - d
-		  /
-	   a:d: 
-		  \
-		      e
-
-This tree has the root at the left hand side. Each level of the tree until the leaves contain statement definitions, e.g. "a:d:". The leaves contain literals, atoms or variables.
-
-The tree can be encoded in prefix format. In this format, each node is written, then it's children are written, recursively::
-
-    (a:d:) (b:) (c:) (d) (e).
-
-Each of these is a statement definition, which determines what it matches and how many arguments it has. A statement definition is the same as a statement and has:
-
-* The number of arguments.
-* The number of if-clauses it has.
-* The statement contents
-* TODO - what else?
-
-The statement contents is the flattened statement hierarchy in prefix format. It would consist of at least one clause. If it consists of more than one clause, it is a then-if statement where the first clause is the then- clause.
-
-The number of arguments is the number of *unique* variables in this statement.
-
-If the number of clauses is zero, then this is a statement definition. 
-
-If the number of clauses is zero and the number of arguments is zero, this is an atom declaration or a statement with no variables. If the first byte of the statement contents is 0, it is an atom.
-
-Within the flattened statement, any lambdas (λ) or variables are argument placeholders. The number of these is declared as the number of arguments. Each lambda or variable also includes a primitive type declaration (TODO: think about this). Thus we might have a block containing (then:(c:A) if:(a:(c:A) b:B) if:(c:B)). ::
-
-    0 Block header / lambda
-    1 Variable			-- A
-    2 Variable			-- B
-    ...empty space...
-    253 a=4, c=2 255 1 254 255 1 2 255 2 -- (then:(c:A) if:(a:(c:A) b:B) if:(c:B))
-    254 a=2, c=0 0(statement) 0(statement)	-- Declaration of a:b:
-    255 a=1, c=0 0(statement)   -- Declaration of c:
-
-The leftmost number is the pointer address. Here, we just use an index starting from 0, but these could be memory addresses or block targets. Everything after a "--" is a comment.
-
-The "a=N" gives the number of arguments. The "c=N" is the number of clauses.
-
-Here, 254 and 255 contain statement definitions. Their arguments are filled with lambdas which declare the types. The type declaration would just be an extra byte after each zero (lambda).
-
-253 contains the actual statement. It has four arguments, one for each variable.
-
-Here is an example containing the list [1,2,3], stored as (h:[+1] emnut:(h:[+2] emnut:(h:[+3] emnut:empty))). The list is in 249.::
-
-    0 Block header / lambda
-    ...empty space...
-    249  255 250 255 251 255 252 253
-    250  [+1]
-    251  [+2]
-    252  [+3]
-    253  a=0 c=0			       -- empty
-    254  a=2 c=0 0(int) 0(statement)	       -- h:<int> emnut:<statement>
-    255  a=2 c=0 0(statement) 0(statement)     -- h:<statement> emnut:<statement>
-
-Here, there are two definitions for (h:emnut:), one for each permutation of primitive types.
-
-
-Variables as placeholders
-----------------------------------
-
-Each statement begins with a link to another statement or definition that contains variables. Following that first link is a number of statement trees, each giving a value for one of those variables.
-	
-The arguments give values for variables in each preceeding linked statement. The first byte is a link to a statement or definition; the bytes after represent trees that give values for each of the variables in that linked statement.
-
-Variable 0 is special. Other variables are numbered 1..N, using the address space that the InPointers inhabit. When populated by arguments, they use these numbers for the argument position.
-
-For example, (a:A b:B c:A) would look like this::
-
-    0  Block header
-	1  A
-	2  B
-	254 255 1 2 1			-- a:A b:B c:A
-    255  a=3 c=0 0(statement) 0(statement) 0(statement) -- a:b:c:
-
-Then, when we use 254 for unification::
-
-    252 254 253 2			-- a:foo b:B c:foo.
-    253 a=0 c=0 0(atom)		-- foo
-	
-Notice here that 252 only has two arguments. Argument 1 is variable 1: "A". Argument 2 is variable 2. Generalised, argument N is variable N.
-
-When unification occurs, we make a new statement with variable values as arguments. For example, consider this code::
-
-    (1) list:( h:Tail emnut:empty ) tail:Tail.
-
-    (2) then:( list:(h:A emnut:(h:B emnut:Rest)) tail:Tail )
-        if:( list:( h:B emnut:Rest ) tail:Tail ).
-
-and the query::
-
-    list:( h:[+1] emnut:(h:[+2] emnut:empty)) tail:Tail?
-
-We encode the module as::
-
-    0  Block header / lambda
-    1  Tail
-    2  A
-    3  B
-    4  Rest
-    ...empty space...
-    250  a=n c=1 252 255 2 255 3 4 1 252 255 3 4 1 -- statement (2)
-    251  a=1 c=0 252 255 1 253 1		-- statement (1)
-    252  a=0 c=0 0(statement) 0(statement)      -- list:<statement> tail:<statement>
-    253  a=0 c=0			        -- empty
-    254  a=2 c=0 0(int) 0(statement)	        -- h:<int> emnut:<statement>
-    255  a=2 c=0 0(statement) 0(statement)      -- h:<statement> emnut:<statement>
-
-TODO: 254 would not be created at compile time? Perhaps it would be created when the query is compiled?
-
-TODO: how do we know how many words a statement can sprawl over? 250 won't fit in a single word. But we can decode the clause and continue to the next word if the clause isn't finished decoding.
-
-Then we encode the query::
-
-    247  a=1 c=0 252 254 248 254 249 253 1 -- The query.
-    248  [+1]
-    249  [+2]
-
-
-The solution would be (list:(h:[+1] emnut:(h:[+2] emnut:empty)) tail:[+2]), which would be encoded as::
-
-    246  a=0 c=0 247 249
-
-Which is the query, but with the variable Tail given the value [+2].
-
-In reality, many other statements would have been created during deduction. If unification isn't complete and variables have no values, those variables would be assigned more variables::
-
-    245  a=1 c=0 247 1
-
-Each variable in a statement is scoped for that statement only. Here, the variable "Tail" for 247 is a separate variable from the variable "Tail" for 245. They will, however, have the same value as 245 assignes Tail as an argument in the same position as the other Tail.
-
-TODO: To decode any statement, we need to completely traverse it's tree. This sucks, performance-wise. I cannot see any shortcuts without caching information such as number of arguments and types. Even if we used dynamic typing, we'd still be looking up number of arguments for everything.
-
-Entry zero, used as lambda, could also be used for the catch-all variable "_".
-
-
-Unifying with sub-statements
--------------------------------
-
-Given this::
-
-	a:(a:A) b:A.
-	a:A b:a?
-	
-Which is encoded thusly::
-
-	252  a=1 c=0 255 1 252						-- a:A b:a?
-	252  a=0 c=0 0(...)							-- a
-	253  a=1 c=0 255 254 1 1					-- a:(a:A) b:A
-	254  a=1 c=0 0(statement)					-- a:
-	255  a=2 c=0 0(statement) 0(statement)		-- a:b:
-
-	
-When 252 is investigated, A is unified with (a:a) which does not exist. Statement 253 needs splitting up so that (a:A) can be referred to(note the entry indexes)::
-
-	251  a=1 c=0 254 1			-- a:A
-	253  a=1 c=0 255 251 1 1	-- a:(a:A) b:A
-	
-Note here that 253 fills in variable 1 from 251 with a new variable 1 in 253. Every free variable in a referred statement needs to be filled, either with another statement, or with a variable.
-
-In this way, variables are scoped only within the statement they are in. If a part of a statement is split out to be referred to by other statements, as an argument it must have as value another variable. (TODO: explain this better.)
-	
-	
-
-Lambda optimisations
--------------------------------
-
-TODO: This can be done using variables. 0 is probably only useful for adding typing information to statement definitions.
-
-This is an idea that could be used to decrease memory use and copying. Large datastructures could be shared as a template with placeholder lambdas and as instances of those templates with values for the placeholders.
-
-Lambdas are placeholders that can be put in the statement. These form places in the statement where arguments can be filled. An index of 0 represents the lambda, as the address is otherwise unused. Position 0 in a block contains the block header which means we can use a reference to 0 for other purposes. 
-
-Lambdas are an implementation detail and are never visible to the user. 
-
-Say we have::
-
-	a:b c:d.
-	a:d c:d.
-
-We could encode these as::
-
-	0 Block header, lambda
-	1 Definition, args=2		-- a:c:
-	2 Definition, args=0		-- b
-	3 Definition, args=0		-- d
-	4 Statement 		1 0 3	-- a:λ c:d
-	5 Statement		4 2		-- a:b c:d
-	6 Statement		4 3		-- a:d c:d
-
-Here, we can share part of the statement. This enables us to share large parts of statements, such as most of a list except for the last element. This is how long lists and trees can be manipulated efficiently.
-	
-Lambdas allow us to use fixed-sized words to store statements. With a WORD_SIZE of 64 bits and using a byte for each reference, there are only 7 bytes available to encode the statement, assuming we lose 1 byte to store the type and number of arguments. 
-
-If we have a long statement, we can encode it using lambdas. For example:
-
-	head:a tail:( head:b tail:( head:a tail:( head:b tail:( head:a tail:( head:b tail:end ))))).
-	
-	0 λ
-	1 Definition, args=2		-- head:tail:
-	2 Definition, args=0		-- a
-	3 Definition, args=0		-- b
-	4 Definition, args=0		-- end
-	5 Statement		1 2 1 3 1 2 0 -- head:a tail:( head:b tail:( head:a tail:λ ))
-	6 Statement		1 3 1 2 1 3 0 -- head:b tail:( head:a tail:( head:b tail:λ ))
-	7 Statement		5 6 4	-- The whole long statement
-
-Here, the statement is at index 7. It takes statement 5 and fills its lambda with statement 6. Statement 6 has a lambda too, which is filled with the atom in index 4.
-
-Each statement entry can have any number of lambdas. However, statements with unfilled lambdas cannot be part of the module's source.
-
-To make efficient use of lambdas, the VM must do some guessing as to which branches and variables in a statement might end up similar. If it guesses inefficiently, the shared data structure might have more differences than similarities.
-
-Idea: lambdas contain typing information. They exist as two bytes: 0 and a byte representing the type.
-
-
-Unification and bindings
-----------------------------------
-
-(brainstorming; this may be unrelated to the above. The current approach is to copy statements reasonably efficiently).
-
-Challenges with unification and bindings are:
-
-* Each variable might have many values as different unifications are explored.
-* Backtracking means that a variable might have a value, then not have a value.
-* Concurrency means that multiple values for a variable are simultaneously explored.
-* A variable might be linked to another variable forming a chain. Once a value for any of these variables is found, all of the variables in the chain get this value.
-* Variables might appear in sub-statements unified from other variables.
-* More stuff I haven't thought of.
-
-We refer to the stack of UnificationSearchables and DeductionSearchables as "the stack". We assume the use of Jellyfish search: except for the head, we do a depth-first search with backtracking. The bottom of the stack has the oldest searchables, the top of the stack is the most recent searchables.
-
-A particular difficulty is that a variable in a statement at the bottom of the stack might have a variable unified by something far up the stack (I think?). 
-
-In the stack, a variable is assigned only once. When backtracking occurs, that variable might be unassigned. A variable will not change value (although this could be an optimisation for later, by fetching the next value of a UnificationSearchable directly).
-
-If we assume Jellyfish search with depth-first searching, variables can be simple bindings. Statements still need to be 'instances', or copied from their originals as, for example, a then-if statement might be used multiple times in the same deduction. They only need to be copied once, with the copies shared up and down the deduction.
-
-Each variable is either unassigned or assigned a value. UnificationSearchables contain a list of variables that were unified by this searchable. When backtracking, the UnificationSearchables will reset those variables value to be unassigned and try again (or just immediately set it to the next possible value).
-
-If a variable is bound to another variable, then we iterate to the end of the chain of variables. If there is a loop (which might not contain the current variable) then we break open the loop.
-
-This list of modified variables could just be added as nodes in The Stack on top of each UnificationSearchable. This would allow any number of them without the need for another data structure.
-
-
-Concurrency and Jellyfish breadth-first search
-------------------------------------------------------------
-
-With Jellyfish search, if a stack reaches a depth limit, search on that "tentacle" is paused for potential later resumption, and search begins again from the root by stealing depth-first nodes and performing a single step of a breadth-first search. The same would be done if a second CPU would like to cooperate in the search.
-
-Here we can take advantage of blocks. We can stash away all of the blocks of the paused search, steal a root node by making a copy of it and start another search with new blocks. 
-
-Root nodes should have short simple statements, meaning that copying them will be efficient. 
-
 
 Indexes
 --------------------
@@ -783,98 +361,7 @@ The oldest, say, 10% of a cache module can be "dieing". If these are references 
 
 Storing modules in binary
 
-On Blocks
---------------------
 
-This VM stores all data in blocks. Each block is BLOCK_SIZE words long (e.g. BLOCK_SIZE=256), with each word being WORD_SIZE bits (e.g. WORD_SIZE=64). With these example values, each block will be 4096 bytes long and be a uint64[256] array. This fits conveniently into a memory page, disk block or network packet, meaning that memory accesses and disk accesses will be conveniently aligned to page boundaries. Other values may be used to experiment with gaining better performance.
-
-The VM persists itself to disk. Blocks are kept in disk files or partitions. The blocks are mmap() into memory as needed and manipulated in place.
-
-Blocks can store:
-* Data
-* Indexes over that data
-* Management metadata.
-
-Each block starts with a header at position 0. This header contains the type of the block and possibly other information about the block. (TODO: what other information?). Positions 1 through BLOCK_SIZE-1 then contain words of data.
-
-Block Types
---------------------
-
-* Statement blocks
-* Array blocks
-    - Arrays of statements
-    - Packed arrays of 
-        - booleans 
-        - bytes 
-        - integers (words, 64-bit)
-        - floats 
-        - packed statements
-* Index blocks (array of words)
-* Backreference lists (array of words).
-
-
-References
---------------------
-
-So far we have only used 8-bit references (assuming BLOCK_SIZE=256) which can only refer to other entries in the same block. To refer to other blocks, we use an invention called "Far References" or "FarRefs". The 8-bit references are referred to as "NearRefs" in comparison.
-
-A "FarRef" is a tuple of (InPointer, Node ID, Block  index) and is stored in one of the words in the block. A FarRef refers to another word in another block. FarRefs are used transparently; anything which refers to a FarRef will think that it is referring directly to that FarRef's target.
-
-Every block has a set of InPointers which are fixed references to entries in that block. These occur at the start of the block. The block header 
-
-Most importantly, InPointers form the root set for intra-block garbage collection.
-
-So, diagramatically::
-
-	Block A					Block B
-	+----------+				+----------+
-	| 0            |        Block B		| ...3        |
-	| 1 FarRef |---->InPointer----->| 4 9        |  (element 4 is an InPointer refering to 9.
-	| 2 1          |				| 5           |
-	+-----------+				+----------+
-
-
-The Block Manager
---------------------
-
-The Block Manager is a component that is responsible for managing the location, type and status of blocks.
-
-Each block lives on a particular node. Each node is a process on the local or a remote computer. Each node has a memory-mapped (mmap) file. A block index is simply the location in that file at byte number (index * 4096).
-
-The block manager manages:
-
-* The network address of each node.
-* Adding and removing nodes from the network.
-* Creating new blocks.
-* Initializing and managing garbage collection.
-* Locking and unlocking blocks for exclusive access.
-* Location of block replicas on other nodes.
-* 
-
-FarRefs
---------------------
-
-A FarRef is 64 bits:
-
-* 8 bits for the InPointer index at the remote block. 
-* 24 bits for the node ID. 
-* 32 bits for the index of the block on that node.
- 
-The InPointer might refer either to an actual InPointer in a statement block, or to a packed element in a packed block.
-
-TODO: we need to steal perhaps 8 bits from this to allow the VM to determine between a statement and a FarRef. If a statement has 255 as its number of elements, it is a FarRef instead::
-
-    a=255 (InPointer index) (Node ID) (Block ID)
-
-The Block Header
---------------------
-
-The block header is the first entry in the block. It is 64 bits long. It contains the following information:
-
-* Block type ( statements / packed / index ) (8 bits)
-* Number of InPointers (8 bits)
-* Next free entry (8 bits)
-* 
 
 Garbage collection
 --------------------
