@@ -97,13 +97,16 @@ Stored elements can be:
 
 * References, 8 bits pointing to something else in the block.
 * Primitive types (bool, byte, int, float etc).
-* Deciders, N bits, determining what the following bit of data is.
+* Deciders, N bits, determining what the type of the following data is.
+* Variables. 
 
 These are packed into 64-bit words.
 
 All the other types the VM needs can be defined in terms of these elements. Type declarations, for example, are packed statements following the same schema. Module references are statements holding everything the VM needs to know about modules. Compiled code is a statement containing an array of bytes.
 
 A "decider" is a small number of bits that determine what the type of the rest of the data is. This occurs when there are multiple options for the type of an element. For example, an "Animal" might be a dog or a cat, so a leading bit would inform the VM that the following data is of format "dog" or format "cat". Deciders should be encoded using the fewest number of bits required, such that compiled code can have a jump table of every possible case to allow for throwing errors for invalid deciding values. Deciders are basically just enums.
+
+Variables are numbered sequentially. These can use the same bit-packing logic as deciders. Variables only need to be stored when in a block. When used, they will be allocated in memory as typed local variables in compiled code.
 
 The VM then knows, starting from a root set of elements of precoded types, what the type of everything other binary bit in the storage is by following the type system. In this way, object headers are not required, and compiled code can make assumptions about the structure of data.
 
@@ -202,15 +205,16 @@ e.g.
     ].
 
     grandfather.
-    module [	myModule] type (:: [ (XXX wrong) grandfather (type person) of (type person)) statements [
+    module [	myModule] type T statements [
         grandfather A of C :-
 	    father A of B,
 	    father B of C 
-    ].
+    ] :-
+        T = (:: [ grandfather (type person) of (type person) :- 
+		father (type person) (type person),
+		father (type person) (type person) ] ).
 
-("~" means that we're omitting details in this example ).
-
-XXX this became complicated.
+(T was moved down for readability)
 
 This would be packed as::
 
@@ -222,8 +226,13 @@ This would be packed as::
     
     grandfather.
     5 [ module->~ ][ declaration->~ ][ statements->6 ].
-    6 [ ->7 ]           // the array of all 
+    6 [ ->7 ]           // the array of all (:: [ grandfather ~ ]).
+    7 
+
+("~" is used to omit obvious details)
     
+The type declaration that is used to determine the format of packed words must be ground. 
+
 
 
 Advanced modules
