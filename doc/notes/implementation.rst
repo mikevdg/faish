@@ -192,12 +192,50 @@ Modules
 
 A module is an array of statements. A module might have a name. There are different types of modules::
 
-* Standard modules. Statements are permanent until removed. Statements are ordered.
+* Code modules. Source code is stored in the module and statement ordering is maintained.
+* Standard module. These are created by code for use by code.
 * Cache modules. Statements might be forgotten from these at any stage. 
 
 Statements in a module are usually ordered for the user's benefit, but ordering is not required when compiling queries. 
 
-The VM has a root module in which it contains metadata about other modules. Module literals physically contain pointers to other modules - when the last module literal pointing to a module is garbage collected, so is its target module. The root module contains, among many other things, references to modules that each user has access to. Perhaps it contains a list of user's "desktop" modules, which in turn contain references to the modules each user has access to.
+The VM maintains a list of modules in a host. The very first statement in a host file stores the host Id and the list of modules on that host::
+
+     host [+123] modules [ ~ ].
+     :: [ host (type integer) modules (type array module) ].
+
+Each module is defined as::
+
+     :: [ module name (type string) indexes (type array moduleIndex) ]      (type module).
+     :: [ (type typeDefinition) (type packRecipe) (type array word) ]       (type moduleIndex).
+
+The (type typeDefinition) is a statement type declaration. A packRecipe is read by the VM to efficiently decode words. A word is a 64-bit unsigned integer.
+
+     :: [ (type array recipeEntry ) ]                                        (type packRecipe).
+     :: [ (type integer) bits integer ]                                      (type recipeEntry).
+     :: [ (type integer) bits float ]                                        (type recipeEntry).
+     :: [ (type integer) bits decider (type array typeDefinition ]           (type recipeEntry).
+     :: [ ref (type typeDefinition) ]                                        (type recipeEntry).
+
+TODO: am I over-using arrays here? Hang on... is statement 0 the only statement in the whole host? If we add a second statement, we won't know it's type. 
+
+XXX what happens if the whole host is just an array of module definitions, with one of those modules being the root?
+
+----
+
+When a statement is declared without a type, e.g.::
+
+    :: [father (type person) of (type person) ].
+
+then that statement is given it's own type, and automatically inherits from (type o)::
+
+    :: [father (type person) of (type person) ]  (type x1234).
+    :: (type x1234) inherits (type o).
+
+This way, an array of that type can be made that will be efficently packed.
+
+----
+
+Module literals physically contain pointers to other modules - when the last module literal pointing to a module is garbage collected, so is its target module. 
 
 Modules are implemented using arrays of statements. Statements are added to and removed from these arrays, and the contents of a module can be listed by iterating over the array. As such, modules begin life as a statement containing an array within a block, and these will be automatically promoted to b-trees as the module grows.
 
