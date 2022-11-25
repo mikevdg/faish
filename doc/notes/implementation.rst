@@ -1,11 +1,11 @@
 A VM Implementation
 =================
 
-This chapter describes a hypothetical implementation of a Squl VM. Code examples in this chapter are in C.
+This chapter describes a hypothetical implementation of a Squl VM.
 
 See http://gulik.pbworks.com/w/page/55126238/Faish%20implementation for the original design notes. They will all eventually be moved here.
 
-The VM design here is a block-based VM. The "heap" is divided into 4 kilobyte blocks, which are also stored to disk and sent across a network. The choice of 4 kilobytes is to match the same size of a disk block or page in memory. 
+The VM design here is a block-based VM. The "heap" is divided into 4 kilobyte blocks, which are also stored to disk and sent across a network. The choice of 4 kilobytes is to match the size of a disk block or page in memory. 
 
 The following types of blocks are found in this VM:
 
@@ -23,30 +23,20 @@ Block metadata is stored externally to the block. A block does not have it's own
 
 Blocks are stored in files. A reference to a block will contain it's location within that file. As blocks are a fixed 4k size, the least significant 12 bits of a block address can be stripped.
 
-The Block Manager
---------------------
-
-The Block Manager is a component that is responsible for managing the location, type and status of blocks.
-
-Each block lives on a particular node. Each node is a process on the local or a remote computer. Each node has a memory-mapped (mmap) file. A block index is simply the location in that file at byte number (index * 4096). 
-
-The block manager manages:
-
-* The network address of each node.
-* Adding and removing nodes from the network.
-* Creating new blocks.
-* Initializing and managing garbage collection.
-* Locking and unlocking blocks for exclusive access.
-* Location of block replicas on other nodes.
-
 InPointers and OutPointers
 --------------------------
 
-A reference to a statement in the same block can be a direct 8-bit pointer. 
+A reference to a statement in the same block can be a direct 8-bit pointer. Each block is made out of 256 64-bit words, such that an 8-bit pointer is guaranteed to reference anything inside the block and nothing outside the block.
 
-A reference to a statement in another block uses a 64-bit "OutPointer". A local 8-bit pointer will point to an OutPointer. OutPointers are kept at the end of the block and block metadata stores the boundary marker between the 64-bit words containing data and the OutPointers.
+A reference to a statement in another block uses a 64-bit "OutPointer". A local 8-bit pointer will point to an OutPointer. The OutPointer in turn will point to an InPointer on another block. OutPointers are stored at the end of each block.
+
+An InPointer is just data that is guaranteed to be fixed at those addresses, such that OutPointers remain valid even after manipulating data within a block.
 
 A standard block has the following structure::
+
+    [ InPointers | data |  OutPointers]
+
+The boundaries between the InPointers, data and OutPointers are stored in block metadata::
 
                  v InPointer boundary
     [ InPointers | data |  OutPointers]
@@ -57,32 +47,28 @@ An OutPointer has the following structure::
      39 bits   19 bits          6 bits
     [  host  ][ block address ][ InPointer # ]
     
-The host refers to block storage on a potentially remote computer. The "host" values are global across the network; an OutPointer retains its validness when moved to a remote host. 
+The host refers to block storage on a potentially remote computer. The "host" values are global across the network; an OutPointer remains valid when moved to a remote host. 
 
 The block address is the address of that block at that host. This is the location of the block in the file, after multiplying by 4096. The size of 19 bits is chosen arbitrarily; it allows for a file size of 2GB for each file. Multiple hosts can be run on the same computer to expand past this limit.
 
-An "InPointer" is just a word in the block which may not be moved, as it is refered to by blocks across disk and across a network. These "InPointer" words are otherwise treated exactly the same as data. If garbage collection is to be implemented, then these InPointers form a root set for this block.
+An "InPointer" is just a word in the block which may not be moved, as it is refered to by blocks across disk and across a network. These "InPointer" words are otherwise treated exactly the same as data. InPointers form the root set for garbage collection.
 
 
 Statically typed storage
 --------------------------
 
-Each word in a standard block is packed data. The structure of this packed data is determined by the typing system. 
+TODO: make a formal text format to present packed data and block structure.
+
+Each 64-bit word in a standard block is packed data. The structure of this packed data is determined by the typing system. 
 
 Given an example type declaration::
 
     :: [ person age (type integer) name (type string) ] (type person).
     
-An integer is 32 bits, and a string can have any length. This statement can be packed into a 64-bit word as::
+An integer is 32 bits, and a string would be a reference to an array of bytes. This statement can be packed into a 64-bit word as::
 
     [ age, 32 bits ][ name, 8 bit reference ][ 24 bits unused ]
     
-Then name would be a string, which (for the sake of this example) is a linked list of 7-character sections, packed as::
-
-    [ 7 characters, 8 bits each ][ next, 8 bit reference ]
-
-(An actual implementation of a string might be very different).
-
 Now if we have the following type declaration:: 
 
     :: [ father (type person) of (type person) ].
@@ -93,17 +79,17 @@ This can be packed as, with both references pointing to persons:
 
 When we want to extract data, we know the type of each word based on the pointer to that word. Every pointer in the VM has a type in this manner.
 
-Stored elements can be:
+Stored elements in a 64-bit packed word can be:
 
 * References, 8 bits pointing to something else in the block.
 * Primitive types (bool, byte, int, float etc).
 * Deciders, N bits, determining what the type of the following data is.
 
-These are packed into 64-bit words.
+All the other types the VM needs can be defined in terms of these elements. Type declarations, for example, are packed statements following the same schema. Module references are statements holding everything the VM needs to know about modules. Compiled code is a statement containing an array of bytes. Arrays are tree structures of statements until they are promoted into b-trees.
 
-All the other types the VM needs can be defined in terms of these elements. Type declarations, for example, are packed statements following the same schema. Module references are statements holding everything the VM needs to know about modules. Compiled code is a statement containing an array of bytes.
+A "decider" is a small number of bits that determine what the type of the rest of the data in that word is. This occurs when there are multiple options for the type of an element. For example, an "Animal" might be a dog or a cat, so a leading bit would inform the VM that the following data is of format "dog" or format "cat". Deciders should be encoded using the fewest number of bits required, such that compiled code can have a jump table of every possible case to allow for throwing errors for invalid deciding values. Deciders are basically just enums.
 
-A "decider" is a small number of bits that determine what the type of the rest of the data is. This occurs when there are multiple options for the type of an element. For example, an "Animal" might be a dog or a cat, so a leading bit would inform the VM that the following data is of format "dog" or format "cat". Deciders should be encoded using the fewest number of bits required, such that compiled code can have a jump table of every possible case to allow for throwing errors for invalid deciding values. Deciders are basically just enums.
+One detail to remember about deciders is that as a module is modified with new types, existing deciders might need to be made of more bits. A solution for this is to have multiple bit packing recipes for the same type of statement.
 
 The VM then knows, starting from a root set of elements of precoded types, what the type of everything other binary bit in the storage is by following the type system. In this way, object headers are not required, and compiled code can make assumptions about the structure of data.
 
@@ -121,9 +107,9 @@ There is scope for many optimisations:
 Arrays
 -------
 
-Arrays begin life as statements or data structures inside a block. Once they have grown to a particular size threshold, they are promoted to B-Trees. 
+Arrays begin life as statements or data structures inside a block. Once they have grown past a particular size threshold, they are promoted to B-Trees. 
 
-TODO: we talk about arrays here, but there's no reason to only have ordered collections. There are many optimisations we could do if they were unordered (i.e. bags) such as packing together elements with predicatable data (e.g. multiple elements with the same value, or following a sequence). Indexing here is only efficient in a single packed block. Everything else is a search through a tree.
+TODO: we talk about arrays here, but there's no reason to only have ordered, indexable collections. There are many optimisations we could do if they were unordered (i.e. bags) such as packing together elements with predicatable data (e.g. multiple elements with the same value, or following a sequence). Indexing here is only efficient in a single packed block. Everything else is a search through a tree.
 
 An array can be implemented as:: 
 
@@ -172,6 +158,34 @@ There are spare bits here, so if the name is 5 bytes or fewer then they can be p
     
 The packing procedure needs to fit structures into 64-bit words. Some statements, such as those with more than 8 positions, might need to be split by adding references in them pointing to other words containing more parts of the statement. Some statements might have left over space that other statements can be inlined into. Statements with hierarchies might be able to be flattened.
 
+Garbage collection
+------------------
+
+There are two types of garbage collection: intra-block garbage collection and inter-block garbage collection.
+
+Intra-block garbage collection is trivial. Any existing GC algorithm, such as mark/sweep, can be used using the InPointers as the root set. The structure of each word and where the 8-bit pointers are in each word is known from the typing system and block packing. Block compaction is supported because every 64-bit word in the block can be moved around except for the InPointers and OutPointers, which are already contiguous at the front and end of the block respectively. 
+
+A mark/sweep garbage collection algorithm can use a 256-bit array for the flags it requires. An intra-block garbage collection is limited to collecting 4k of memory, meaning that they should be fast and not cause noticable GC pauses.
+
+Inter-block garbage collection is implemented using a back-reference tracking garbage collecter. This algorithm is similar to a reference counting garbage collection algorithm except that we keep a list of all references instead of just a count.
+
+InPointers are guaranteed to be in a fixed place in each block. Every InPointer has a back-reference list. These are stored in block metadata outside the block. Each back-reference list is an array, which is promotable to a b-tree if it should grow large. A back-reference list is an array of words having the same structure as OutPointers -- each array entry contains the host, block and address of an OutPointer that refers to a particular InPointer. 
+
+When an OutPointer is removed by the intra-block garbage collecter, the virtual machine will traverse it to the InPointer it refers to, and then remove that OutPointer from the InPointer's back-reference list. When a back-reference list becomes empty, that reference is now known to be collectable garbage. The process can now continue by performing an intra-GC on that other block, potentially cascading into more inter- and intra- GCs.
+
+A back-reference garbage collection algorithm has a lot of storage overhead, but also many benefits:
+
+* This algorithm works well with blocks stored on persistent storage (disk) or across a network.
+* Blocks stored on disk do not need to be loaded into memory to be processed. Back-reference lists are external to the block and can remain empty indefinitely, incurring only extra disk space usage. A disk-intensive GC can be scheduled at a convenient time.
+* It does not necessarily pause execution, other than when locking blocks for writing.
+* It is naturally highly concurrent and distributed.
+* Garbage collection can be done by any thread or any number of threads.
+
+One could imagine a cluster with a load balancer that schedules garbage collections. A host would accumulate notifications from other hosts that particular back-reference lists need to be modified. When appropriate, the load balancer would stop sending traffic to that host, so that the host can be in a "soft offline" state to perform potentially disk-intensive garbage collection. When completed, the host would rejoin the cluster.
+
+It is hoped that using blocks with internal 8-bit references for the majority of references in the heap will help mitigate the overhead of storing back-references.
+
+Using this scheme, other operations are possible. As we can find all references to a word, we can split or merge blocks. InPointers and OutPointers at the ends of the block can be compacted if there are holes. Blocks can be migrated to other hosts.
 
 Modules
 -------------
