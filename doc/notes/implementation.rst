@@ -111,6 +111,12 @@ Arrays begin life as statements or data structures inside a block. Once they hav
 
 TODO: we talk about arrays here, but there's no reason to only have ordered, indexable collections. There are many optimisations we could do if they were unordered (i.e. bags) such as packing together elements with predicatable data (e.g. multiple elements with the same value, or following a sequence). Indexing here is only efficient in a single packed block. Everything else is a search through a tree.
 
+TODO:
+* Collections can be growable or fixed size. (OrderedCollection, Array)
+* Collections can be ordered. (OrderedCollection, Array) or (Bag)
+* Collections can be indexable.
+* Collections might not allow duplicates. (Set / HashMap)
+
 An array can be implemented as::
 
     :: [ array size (type byte) inline (type T) ] (type array (type T)).
@@ -127,7 +133,7 @@ An array can be implemented as::
 This would be packed by the compiler as: 
 
     Decider   Size      Contents/b-tree
-    "00"      3 bits    <packed contents if they fit into 59 bits)
+    "00"      3 bits    <packed contents if they fit into 59 bits>
     "01"      3 bits    8 bits      (51 bits unused)
     "10"      8 bits    8 bits      (46 bits unused)
     "11"      8 bit ref (...maybe pack the BTree type here?)
@@ -141,7 +147,7 @@ The different promotable types of array here are:
 
 (It seems that "01" isn't worthwhile having!).
 
-We can derive the type of the array. If we have a reference to the array, we kind of know it's type:
+We can derive the type of the array. If we have a reference to the array, we know it's type:
 
     :: [ personArray (type array (type person)) ].
 
@@ -173,6 +179,8 @@ InPointers are guaranteed to be in a fixed place in each block. Every InPointer 
 
 When an OutPointer is removed by the intra-block garbage collecter, the virtual machine will traverse it to the InPointer it refers to, and then remove that OutPointer from the InPointer's back-reference list. When a back-reference list becomes empty, that reference is now known to be collectable garbage. The process can now continue by performing an intra-GC on that other block, potentially cascading into more inter- and intra- GCs.
 
+BackReference lists, like reference counting, are still prone to cycles. To prevent this, the first entry in any backreference list is one that can be traced back to the root of the GC. If the first entry is removed, the other entries are searched for a path back to the root. This search might have cycles. If no path back to a root node can be found, then the InPointer and everything that this thread just marked is garbage. (Beware though if this is multi-threaded; another thread might be marking things but might yet find a connection back to a root). The search back to the GC root does not need to be exhaustive; any back-reference which is first in its list is guaranteed to be traceable back to the root, so the search can stop when it finds a back-reference list with a valid first item. Note that a search like this is expensive: blocks need to be searched through backwards.
+
 A back-reference garbage collection algorithm has a lot of storage overhead, but also many benefits:
 
 * This algorithm works well with blocks stored on persistent storage (disk) or across a network.
@@ -187,6 +195,42 @@ It is hoped that using blocks with internal 8-bit references for the majority of
 
 Using this scheme, other operations are possible. As we can find all references to a word, we can split or merge blocks. InPointers and OutPointers at the ends of the block can be compacted if there are holes. Blocks can be migrated to other hosts.
 
+Host File Structure
+-------------------
+
+The file is entirely 4k blocks of 64-bit packed words. Blocks are accessed by index starting from 0. All state stored and used by the VM to maintain itself is stored in packed statements.
+
+At this level of abstraction, only primitive types and references are implemented. Until modules are defined (below), the virtual machine can only allocate and modify blocks and words, and invoke garbage collection.
+
+TODO: keep track of the state of worker threads? 
+
+TODO: types for variable sized integers.
+
+There is, in fact, only one statement in the entire host. It is at block 0, word 0 in the file, and is of type::
+
+     :: [ host magicWord (type uInt16)
+          id (type integer) 
+          modules (type array module) 
+          numberOfBlocks (type integer)
+          blocks (type array blockMetadata)
+          deallocatedBlocks (type array blockReference) ].
+
+
+This statement stores the Id of the host and the modules within that host. This one statement contains everything in this host. This statement is continually mutated by the virtual machine as it executes. In fact, it is not really a statement but more of a data structure. It cannot be queried, as it lives outside the concept of a module. Nevertheless, we are polite, so once modules are implemented, we include the type of this root statement in the root module.
+
+The virtual machine has the packing recipe of this and other basic statements built-in so that it has enough information to read packing recipes.
+
+The magic word is a convention at the start of every file that helps operating systems and utilities to recognise file types. It has a fixed value.
+
+Block metadata is stored in the "root statement"::
+
+    :: [    block id (type integer) 
+            inPointerBoundary (type byte) 
+            outPointerBoundary (type byte) 
+            backReferences (type array outPointer) ]
+        (type blockMetadata).
+
+
 Modules
 -------------
 
@@ -198,27 +242,36 @@ A module is an array of statements. A module might have a name. There are differ
 
 Statements in a module are usually ordered for the user's benefit, but ordering is not required when compiling queries.
 
-The VM maintains a list of modules in a host. The very first statement in a host file stores the host Id and the list of modules on that host::
-
-     host [+123] modules [ ~ ].
-     :: [ host (type integer) modules (type array module) ].
+Block metadata is kept here to manage the blocks in the VM. When blocks are deallocated, they are added to the deallocatedBlocks list for later re-use. Potentially, a defragmentation routine could be made to shrink the host file.
 
 Each module is defined as::
 
      :: [ module name (type string) indexes (type array moduleIndex) ]      (type module).
      :: [ (type typeDefinition) (type packRecipe) (type array word) ]       (type moduleIndex).
 
-The (type typeDefinition) is a statement type declaration. A packRecipe is read by the VM to efficiently decode words. A word is a 64-bit unsigned integer.
+The (type typeDefinition) is a statement type declaration. A packRecipe is read by the VM to decode words. A word is a 64-bit unsigned integer.
 
-     :: [ (type array recipeEntry ) ]                                        (type packRecipe).
-     :: [ (type integer) bits integer ]                                      (type recipeEntry).
-     :: [ (type integer) bits float ]                                        (type recipeEntry).
-     :: [ (type integer) bits decider (type array typeDefinition ]           (type recipeEntry).
-     :: [ ref (type typeDefinition) ]                                        (type recipeEntry).
+TODO: I've lost ordering in a module!
 
-TODO: am I over-using arrays here? Hang on... is statement 0 the only statement in the whole host? If we add a second statement, we won't know it's type.
+A moduleIndex is an array of statements of one particular type. Each word in this array is packed in the same way, so that a decider is not needed for each statement. TODO: can we have arrays of packed words larger or smaller than 64 bits?
 
-XXX what happens if the whole host is just an array of module definitions, with one of those modules being the root?
+::
+    :: [ (type array recipeEntry ) ]                                        (type packRecipe).
+    :: [ (type integer) bits integer ]                                      (type recipeEntry).
+    :: [ (type integer) bits float ]                                        (type recipeEntry).
+    [" etc for the other primitive types. ].
+    :: [ (type integer) bits decider (type array typeDefinition) ]          (type recipeEntry).
+    :: [ reference (type typeDefinition) ]                                  (type recipeEntry).
+
+A pack recipe informs the VM how to pack and unpack a word. For example, if we have::
+
+    :: [ name (type string) age (type integer) hairColour (type colour) ]  (type person).
+
+The packing recipe for this would be::
+
+    [ (reference (type string))
+      ([+32] bits integer)
+      (reference (type colour)) ].
 
 ----
 
@@ -235,11 +288,9 @@ This way, an array of that type can be made that will be efficently packed.
 
 ----
 
+TODO old notes
+
 Module literals physically contain pointers to other modules - when the last module literal pointing to a module is garbage collected, so is its target module.
-
-Modules are implemented using arrays of statements. Statements are added to and removed from these arrays, and the contents of a module can be listed by iterating over the array. As such, modules begin life as a statement containing an array within a block, and these will be automatically promoted to b-trees as the module grows.
-
-XXX if you have an array containing entries for each type of statement, then this makes a lot of extra overhead when there is only one entry in each array.
 
 A module would have a master array. This master array would contain an array for each type of statement in this module ::
 
@@ -356,12 +407,7 @@ Storing modules in binary
 Garbage collection
 --------------------
 
-GC might not be needed. Check that it is needed first.
-
-
---
-
-There are two types of garbage collection used: intra-GC and extra-GC.
+There are two types of garbage collection used: intra-GC and -GC.
 
 Intra-GC is garbage collection that happens within a block. Any common garbage collection algorithm can be used. The InPointers for that block form the root set. FarRefs are treated just like any other object, except that a backreference must be removed whenever one is removed from a block.
 
@@ -391,7 +437,6 @@ Each InPointer has a backreference list. Each FarRef has one entry in it's targe
 
 Backreference lists need to be sorted (or hashed, or something). When a FarRef is garbage collected, the backreference in it's target's InPointer's backreference list needs to be removed. This needs to be done efficiently, meaning that a hash table or sorted collection needs to be used.
 
-BackReference lists, like reference counting, are still prone to cycles. To prevent this, the first entry in any backreference list is one that can be traced back to the root of the GC (which would be the master index, discussed later). If the first entry is removed, the other entries are searched for a path back to the root. This search might have cycles, so we would need to mark references as we search to prevent infinite loops. If no path back to a root node can be found, then the node and everything that this thread just marked is garbage. (Beware though if this is multi-threaded; another thread might be marking things but might yet find a connection back to a root).
 
 Note that there is a lot of potential concurrency here. If an intra-GC collects a FarRef, then an extra-GC for that FarRef can be forked off. Multiple extra-GCs can run concurrently, collectively cooperating to find a path back to the root.
 
@@ -429,7 +474,7 @@ When FarRefs to remote blocks are made, a message needs to be sent to the remote
 
 All writes to the module's log need to be broadcast to all participating hosts. They can then individually decide what to do with those changes.
 
-Alternatively, FarRefs (OutPointers) could have the following structure::
+Alternatively, OutPointers could have the following structure::
 
     [ host ][ block address ][ InPointer # ]
 
@@ -578,72 +623,6 @@ Arrays of statements just use ordinary statement blocks in the array. The 256 In
 Idea: the runtime stack could be an array of statements. (node:deductionSearchable statement:... parent:... etc).
 
 
-Boolean, Byte, Integer, Float, Packed Statement arrays
-------------------------------------------------------
-
-(TODO)
-
-Boolean, Byte, Integer, Float and Packed Statement arrays can only contain basic data, but are compressed and optimised for use with GPU (OpenCL / CUDA / SPIR-V) or SIMD instructions.
-
-A packed statement is one where the array definition contains a statement prefix, and all lambdas in that prefix are packable data: bytes, integers, floats, or entries in the source block that the array is referenced from. Packed statement arrays resemble arrays of structs with inline data.
-
-When packing statements, the statement prefix is stored in the array definition, which is an entry in a standard block. The array definition is a tuple of (block ID, prefix).
-
-Idea: When first accessed, these arrays can be unpacked (in their entirety or as an array segment) into an actual array in memory or on the GPU. When snapshots occur, these arrays can be packed again from memory back into blocks and stored to disk.
-
-If you unpack these arrays from disk blocks into memory separate from block storage, then they can be uploaded to GPUs or have SIMD instructions run over them.
-
-If unpacking / packing of arrays is implemented, each array would look like this:
-
-Array definition  -->  Index blocks  -->  Data blocks
-
-The index blocks here are standard. The data blocks have a type of "packed" or something, and contain only raw data to be unpacked.
-
-Packed blocks are more easily inserted and removed than unpacked blocks. Unpacked blocks are more easily iterated over and indexed. If an array is undergoing a lot of insertion and removal, then it might be better to leave it packed. In fact, unpacking won't need to be implemented until SIMD instructions are implemented.
-
-The array definition would store the format of the entries in the array.
-
---
-
-Idea: These arrays can be volatile with an initializer. A volatile array is never stored to disk but rather regenerated at runtime when required.
-
-Idea: Implement weak references???
-
-Unpacking a boolean or byte array before use is one way of avoiding the problem of addressing byte array elements.
-
-Idea: Generated machine code could be unpacked and packed using byte arrays.
-
-Packed arrays are an optimisation and aren't required for a functional VM, except for backreference lists.
-
-
-
-
-Compound Arrays
---------------------
-
-A compound array is one that is implemented using several other types of array. Some parts might be packed statements, other parts might be small or large arrays. These segments are all concatenated together by an abstraction to form the compound array.
-
-Compound arrays could be used:
-
-* to more efficiently pack arrays of statements. Heterogeneous sections can be stored in standard array segments; homogeneous sections can be packed into packed statement array segments.
-
-* to store massive arrays that exceed the capacity of one computer's memory or one computer's disk space.
-
-
-
-The Root block
---------------------
-
-The root block is block 0 on any disk file. It stores:
-
-* The root module.
-* Core statement definitions:
-    - ...
-* Locations of other nodes.
-
-Actually, once you have the root module, everything else can go in there. Initially, the root module would fit into block 0. Eventually it would be promoted to a large array.
-
-
 Profiling statistics
 ------------------------------
 
@@ -693,110 +672,3 @@ All forms of non-determinism needs to be captured:
 All device I/O happens between queries. Only the events that are used (see Usefulness above) by the next query need to be kept.
 
 Thread communication and inter-node communication (probably very similar) will depend on how they are implemented. Threads will probably be sharing parent search nodes and cache modules.
-
-
-
-
-OLD NOTES
-===================
-
-Statically typed experiment (with the problem: how would statement links work?)
-
-Statements
-----------
-
-Each module index is an array of links to statements. Each statement has the following format::
-
-    [type][contents...]
-
-[type] is 8 bits and is a pointer to a statement definition. [contents] are 7 entries for that block with their type specified in the statement definition.
-
-Statement Definitions
----------------------
-
-Statement definitions (signatures) are::
-
-    [SIG][types...]
-
-where SIG is a constant and ignored except for verifying the integrity of a block. Types are 7 entries long and are either one of the following predefined types or another statement definition (these occupy the address space of the InPointers and variables)::
-
-* 0                Naked statement component, or unused.
-* STATEMENT            A Statement or atom
-* INTEGER             Integer literal
-* FLOAT             Float literal
-* STATEMENT_LITERAL         Statement, atom, variable literal
-* SIG                Statement definition literal
-* MODULE_REFERENCE         Module Reference literal
-* ARRAY             Array
-
-
-Note that a type could refer to an OutPointer which then needs to be followed.
-
-If a statement appears in the module index and has type 0, it means it's a naked statement component such as a string comment, integer tag or an atom floating around by itself in the module.
-
-The arity of a statement can be determined by looking at how many of the type elements are populated. A "0" means that that type element is not used; so all non-zero type elements are counted up to find the arity of that statement definition.
-
-For example, a naked string would look like this (24 is the address)::
-
-    24: 0 25 _ _ _ _ _ _   -- type=0, refer to 25.
-    25: 9 TODO h e l l o \n  -- the string "hello\n"
-
-An atom would look like this:
-
-    24: 25 _ _ _ _ _ _ _  -- The atom at 25.
-    25: 1 0 0 0 0 0 0 0   -- A statement of arity 0.
-
-(hello:[+1] world:["world]) would look like this ::
-
-    24: 25 26 27 _ _ _ _  -- (hello:[+1] world:["world])
-    25: SIG INTEGER STRING 0 0 0 0 0   -- signature (hello:int world:string)
-    26: 0 0 0 0 0 0 0 1   -- [+1]
-    27: w o r l d 0 _ _   -- ["world]
-
-Literals
---------
-
-Integers, Floats, Module References all have 64 bits to be what they are. For example, (a:[+15]) is::
-
-    24: 25 26 _ _ _ _ _         -- a:[+15]
-    25: SIG INTEGER 0 0 0 0 0 0     -- (a:integer)
-    26: 0 0 0 0 0 0 0 15         -- [+15]
-
-Arrays are described below.
-
-A statement literal is just a link to another statement, following the same rules as a module index.
-
-E.g. (a:[\b:c]) is::
-
-    24: 25 26 _ _ _ _ _         -- (a:[\b:c])
-    25: SIG STATEMENT_LITERAL 0 0 0 0 0 0 -- (a:)
-    26: 27 28 _ _ _ _ _ _         -- (b:c)
-    27: SIG STATEMENT 0 0 0 0 0 0 0     -- (b:)
-    28: 29 _ _ _ _ _ _ _         -- (c)
-    29: SIG _ _ _ _ _ _ _         -- (c)
-
-A statement definition literal is a link to a statement definition.
-
-
-Arrays
-------
-
-Arrays can be:
-
-* String (same implementation as u8 array, but displayed differently)
-* Boolean array
-* Integer array (8-bit / 16-bit / 32-bit / 64-bit; signed / unsigned)
-* Float array (8-bit / 16-bit / 32-bit / 64-bit)
-* Statement array
-* Packed statement array
-* Compiled code?
-* Big Integer
-
-In a statement definition,
-
-Arrays have the following format::
-
-    [LITERAL_DEFINITION][array type]
-
-Where [array type] is one of the above. This can share the "literal type" address space.
-
