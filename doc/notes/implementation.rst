@@ -3,9 +3,13 @@ A VM Implementation
 
 This chapter describes a hypothetical implementation of a Squl VM.
 
-See http://gulik.pbworks.com/w/page/55126238/Faish%20implementation for the original design notes. They will all eventually be moved here.
+This VM design is more accurately a persistent store. It bridges the gap between a heap-based virtual machine and a relational database. Data is paged to and from disk as the VM operates. This VM design also allows for a single virtual machine to be distributed across a cluster.
 
-The VM design here is a block-based VM. The "heap" is divided into 4 kilobyte blocks, which are also stored to disk and sent across a network. The choice of 4 kilobytes is to match the size of a disk block or page in memory.
+Execution is done using queries. An interactive system uses an event loop, which can be summarised as repeatedly asking the VM "This just happened. What should we do now?". Queries are compiled into native executable code by the compiler. Generally, small numbers of statements will be compiled inline into the executable code, but when a query has a large number of potential statements to examine, it will inject direct references to the storage into the executable code and generate code that will scan the storage in the same way that a relational database does.
+
+Executable code can also manipulate modules by adding and removing statements. These modules will exist in this storage as well. When the VM implementation becomes sophisticated enough, long-running partially evaluated queries might be persisted to disk, and "cache modules" that store reusable deductions will be stored.
+
+The VM design here is a "block-based" VM. The "heap" is divided into 4 kilobyte blocks, which are also stored to disk and sent across a network. The choice of 4 kilobytes is to match the size of a disk block or page in memory.
 
 The following types of blocks are found in this VM:
 
@@ -19,18 +23,18 @@ Standard blocks are used to contain small numbers of statements. A standard bloc
 
 A packed block is used to contain a large number of statements or repeated data. A packed block is used as the leaf node of a BTree. Packed blocks are created when an array becomes too large to fit into a single block and is promoted to a B-Tree.
 
-Block metadata is stored externally to the block. A block does not have it's own header field inside itself.
+Block metadata is stored externally to the block. 
 
 Blocks are stored in files. A reference to a block will contain it's location within that file. As blocks are a fixed 4k size, the least significant 12 bits of a block address can be stripped.
 
 InPointers and OutPointers
 --------------------------
 
-A reference to a statement in the same block can be a direct 8-bit pointer. Each block is made out of 256 64-bit words, such that an 8-bit pointer is guaranteed to reference anything inside the block and nothing outside the block.
+A reference to a statement in the same block can be a direct 8-bit pointer. Each block is made out of 256 64-bit words, such that an 8-bit pointer is guaranteed to reference something inside the block and nothing outside the block.
 
-A reference to a statement in another block uses a 64-bit "OutPointer". A local 8-bit pointer will point to an OutPointer. The OutPointer in turn will point to an InPointer on another block. OutPointers are stored at the end of each block.
+A reference to a statement in another block uses a 64-bit "OutPointer". A local 8-bit pointer will point to an OutPointer. The OutPointer in turn will point to an InPointer on another block. OutPointers are stored together at the end of each block so that they can be differentiated from other words in the block.
 
-An InPointer is just data that is guaranteed to be fixed at those addresses, such that OutPointers remain valid even after manipulating data within a block.
+An InPointer is just data that is guaranteed to be fixed at an address, such that OutPointers remain valid even after moving data within a block (as happens, for example, during garbage collection). InPointers are stored together at the start of each block.
 
 A standard block has the following structure::
 
@@ -57,7 +61,6 @@ An "InPointer" is just a word in the block which may not be moved, as it is refe
 Statically typed storage
 --------------------------
 
-TODO: make a formal text format to present packed data and block structure.
 
 Each 64-bit word in a standard block is packed data. The structure of this packed data is determined by the typing system. 
 
@@ -67,7 +70,9 @@ Given an example type declaration::
 
 An integer is 32 bits, and a string would be a reference to an array of bytes. This statement can be packed into a 64-bit word as::
 
-    [ age, 32 bits ][ name, 8 bit reference ][ 24 bits unused ]
+    0  [ age uint32 ][ name-> string ]
+
+In the example above, we see an unsigned integer of 32 bits and a reference of 8 bits. This means that 24 bits of the word are unused.
 
 Now if we have the following type declaration::
 
@@ -75,13 +80,13 @@ Now if we have the following type declaration::
 
 This can be packed as, with both references pointing to persons:
 
-    [ 8 bit reference ][ 8 bit reference ] [ 56 bits unused ].
+    [ father-> person ][ of-> person ] 
 
 When we want to extract data, we know the type of each word based on the pointer to that word. Every pointer in the VM has a type in this manner.
 
 Stored elements in a 64-bit packed word can be:
 
-* References, 8 bits pointing to something else in the block.
+* Typed references, 8 bits pointing to either another word or an OutPointer.
 * Primitive types (bool, byte, int, float etc).
 * Deciders, N bits, determining what the type of the following data is.
 
@@ -89,9 +94,61 @@ All the other types the VM needs can be defined in terms of these elements. Type
 
 A "decider" is a small number of bits that determine what the type of the rest of the data in that word is. This occurs when there are multiple options for the type of an element. For example, an "Animal" might be a dog or a cat, so a leading bit would inform the VM that the following data is of format "dog" or format "cat". Deciders should be encoded using the fewest number of bits required, such that compiled code can have a jump table of every possible case to allow for throwing errors for invalid deciding values. Deciders are basically just enums.
 
-One detail to remember about deciders is that as a module is modified with new types, existing deciders might need to be made of more bits. A solution for this is to have multiple bit packing recipes for the same type of statement.
+One detail to remember about deciders is that as a module is modified with new types, existing deciders might need to be made of more bits. A solution for this is to have multiple packing recipes for the same type of statement.
 
 The VM then knows, starting from a root set of elements of precoded types, what the type of everything other binary bit in the storage is by following the type system. In this way, object headers are not required, and compiled code can make assumptions about the structure of data.
+
+Bit packing notation
+--------------------
+
+This document uses the following format for displaying the format of packed words. 
+
+Given the following example::
+
+    a. :: [ cat name (type string) age (type integer) ]  (type pet).
+    b. :: [ dog (type dogLabour) name (type string) ] (type dog).
+    c. :: dog inherits pet.
+    d. :: [ workingDog ]  (type dogLabour).
+    e. :: [ petDog ]  (type dogLabour).
+
+This can be encoded as::
+
+    a  [decider "0"][-> string][uint32]
+    b  [decider "1"][-> dogLabour][-> string]
+    c
+    d  [] 
+    e  []
+
+So when we use these type definitions, e.g.::
+
+    cat name ["puss] age [+14].
+    
+can be encoded as::
+
+    0 | 00 01 __ __ "14"
+    1 | "puss" 
+
+Word 0 contains the decider, then a reference to the string, then the integer "14" encoded in 4 bytes. Word 1 contains the string "puss" encoded using a scheme that we have no yet specified. Here we align the 32-bit integer to a word boundary.
+
+::
+    dog petDog name ["fido].    
+
+can be encoded as::
+
+    2 | 01 03 __ __ __ __ __ __ 
+    3 | __ __ __ __ __ __ __ __
+
+Word 2 contains the decider "1" and a referece to word 3. Word 3 is the atom (petDog). Atoms have no arguments but must still be referenced, so they just occupy address space with no data.
+
+In the notation above for bit packing, The first word (e.g. "a") is a convenient reference to the statement label. Each entry after that is a description of how bits are packed. These will be either:
+
+* `[<type>]`. This is an inline value. The number of bits is derived from it's type.
+* `[-> <type>]`. This is an 8-bit reference to a value of the given type.
+* `[decider "<value"]`. This is a decider with the given value.
+
+We borrow the type notation for primitive inline types from Rust. "uint32" is a 32-bit unsigned integer.
+
+
 
 Advanced word packing
 ---------------------
@@ -102,7 +159,6 @@ There is scope for many optimisations:
 * Nested statements can be flattened.
 * Statements can be given multiple different packings. For example, if a statements packs into 48 bits but not 64 bits, then multiple different packings can be created to pack four of those statements across three words.
 * Each packed section could be either inline data or a reference.
-
 
 Arrays
 -------
@@ -233,6 +289,8 @@ Block metadata is stored in the "root statement"::
 
 Modules
 -------------
+
+TODO: multiple version of modules? Copy-on-write?
 
 A module is an array of statements. A module might have a name. There are different types of modules::
 
